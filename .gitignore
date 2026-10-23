@@ -42,3 +42,13 @@ share/python-wheels/
 # OS files
 .DS_Store
 Thumbs.db
+
+# SQLite & local dev databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Test & coverage artifacts
+.coverage
+htmlcov/
+.pytest_cache/
