@@ -184,8 +184,23 @@ def test_login_wrong_password(client: TestClient):
     assert response.json()["detail"] == "Invalid email or password"
 
 
-def test_login_nonexistent_user(client: TestClient):
-    """Test login with unregistered email returns generic 401 to prevent enumeration."""
+def test_login_nonexistent_user(client: TestClient, monkeypatch):
+    """Unknown users use the dummy hash and receive a generic 401."""
+    from backend.src.routes import auth as auth_routes
+    from backend.src.helpers.auth import DUMMY_PASSWORD_HASH
+
+    checked_hashes = []
+
+    def fake_verify_password(password, stored_hash):
+        checked_hashes.append(stored_hash)
+        return False
+
+    monkeypatch.setattr(
+        auth_routes,
+        "verify_password",
+        fake_verify_password,
+    )
+
     response = client.post(
         "/auth/login",
         json={
@@ -193,8 +208,10 @@ def test_login_nonexistent_user(client: TestClient):
             "password": "AnyPassword123!",
         },
     )
+
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert response.json()["detail"] == "Invalid email or password"
+    assert checked_hashes == [DUMMY_PASSWORD_HASH]
 
 
 def test_login_deactivated_user(client: TestClient, db_session):
