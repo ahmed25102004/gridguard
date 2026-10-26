@@ -1,10 +1,13 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+
+import redis
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..helpers.auth import (
+    DUMMY_PASSWORD_HASH,
     create_access_token,
     create_refresh_token,
     decode_token,
@@ -12,44 +15,53 @@ from ..helpers.auth import (
     hash_password,
     verify_password,
 )
+
+from ..helpers.login_protection import (
+    is_login_blocked,
+    record_failed_login,
+    clear_account_login_failures,
+)
+from ..helpers.password_policy import validate_password_strength
+from ..helpers.token_blacklist import (
+    blacklist_token,
+    is_token_blacklisted,
+)
 from ..models import Role, User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-# --- Pydantic v2 Validation Schemas ---
-
 class RegisterRequest(BaseModel):
-    """Schema for new user registration payload."""
+    """Schema for new user registration."""
     email: EmailStr
-    password: str = Field(min_length=8, description="Password must be at least 8 characters")
+    password: str = Field(
+        min_length=8,
+        description="Password must meet the password strength policy",
+    )
     full_name: Optional[str] = Field(default=None, max_length=100)
-    role_name: str = Field(default="Technician", description="Initial role assignment (e.g. Technician, Engineer)")
+    role_name: str = Field(default="Technician")
 
 
 class LoginRequest(BaseModel):
-    """Schema for user credentials during login."""
+    """Schema for login credentials."""
     email: EmailStr
     password: str
 
 
 class TokenResponse(BaseModel):
-    """Schema for returning JWT token pairs."""
+    """Response containing access and refresh JWTs."""
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
 
 
 class RefreshTokenRequest(BaseModel):
-    """Schema for requesting a refreshed access token."""
+    """Request to refresh a token pair."""
     refresh_token: str
 
 
 class UserResponse(BaseModel):
-    """
-    Public user profile schema.
-    Strictly omits passwords and password hashes to ensure credential confidentiality.
-    """
+    """Public user profile; never exposes password hashes."""
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -60,7 +72,27 @@ class UserResponse(BaseModel):
     permissions: List[str] = Field(default_factory=list)
 
 
-# --- Authentication Route Handlers ---
+def _check_token_blacklist(token: str) -> bool:
+    """Fail closed if the blacklist cannot be checked."""
+    try:
+        return is_token_blacklisted(token)
+    except redis.exceptions.RedisError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable",
+        )
+
+
+def _revoke_token(token: str, expires_at: int) -> None:
+    """Revoke a token until its actual expiration time."""
+    try:
+        blacklist_token(token, expires_at)
+    except redis.exceptions.RedisError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable",
+        )
+
 
 @router.post(
     "/register",
@@ -72,27 +104,31 @@ def register_user(
     payload: RegisterRequest,
     db: Session = Depends(get_db),
 ) -> UserResponse:
-    """
-    Register a new user account with a hashed password and assigned system role.
-    Returns the created user profile without sensitive credentials.
-    """
-    # Check if a user with this email already exists
-    existing_user = db.query(User).filter(User.email == payload.email).first()
+    """Create a user with a validated, hashed password."""
+    validate_password_strength(payload.password)
+
+    existing_user = (
+        db.query(User)
+        .filter(User.email == payload.email)
+        .first()
+    )
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email is already registered",
         )
 
-    # Validate that the specified role exists in the database
-    role = db.query(Role).filter(Role.name == payload.role_name).first()
+    role = (
+        db.query(Role)
+        .filter(Role.name == payload.role_name)
+        .first()
+    )
     if not role:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Role '{payload.role_name}' does not exist",
+            detail="Requested role does not exist",
         )
 
-    # Instantiate new User with bcrypt-hashed password
     new_user = User(
         email=payload.email,
         hashed_password=hash_password(payload.password),
@@ -101,9 +137,13 @@ def register_user(
         is_active=True,
     )
 
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except Exception:
+        db.rollback()
+        raise
 
     return UserResponse(
         id=new_user.id,
@@ -111,7 +151,7 @@ def register_user(
         full_name=new_user.full_name,
         is_active=new_user.is_active,
         role=role.name,
-        permissions=[p.name for p in role.permissions],
+        permissions=[permission.name for permission in role.permissions],
     )
 
 
@@ -122,43 +162,85 @@ def register_user(
 )
 def login_user(
     payload: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
-    """
-    Authenticate a user with email and password.
-    Returns a pair of JWT access and refresh tokens upon successful verification.
-    """
-    # Retrieve user record by email
-    user = db.query(User).filter(User.email == payload.email).first()
+    """Authenticate a user with rate limiting."""
+    client_ip = (
+        request.client.host
+        if request.client is not None
+        else "unknown"
+    )
 
-    # Validate existence and verify password hash
-    if not user or not verify_password(payload.password, user.hashed_password):
+    try:
+        if is_login_blocked(payload.email, client_ip):
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many failed login attempts. Try again later.",
+            )
+    except redis.exceptions.RedisError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable",
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.email == payload.email)
+        .first()
+    )
+
+
+    # Use the same public error for unknown users and incorrect passwords.
+    password_hash = (
+        user.hashed_password
+        if user is not None
+        else DUMMY_PASSWORD_HASH
+    )
+
+    password_valid = verify_password(payload.password, password_hash)
+
+    if user is None or not password_valid:
+        try:
+            record_failed_login(payload.email, client_ip)
+        except redis.exceptions.RedisError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Authentication service temporarily unavailable",
+            )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Enforce active account status
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is deactivated",
         )
 
-    # Claims payload included inside access token
+    try:
+        clear_account_login_failures(payload.email)
+    except redis.exceptions.RedisError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication service temporarily unavailable",
+        )
+
     token_data = {
         "sub": user.email,
         "user_id": user.id,
         "role": user.role.name if user.role else None,
     }
 
-    access_token = create_access_token(data=token_data)
-    refresh_token = create_refresh_token(data={"sub": user.email, "user_id": user.id})
-
     return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
+        access_token=create_access_token(data=token_data),
+        refresh_token=create_refresh_token(
+            data={"sub": user.email, "user_id": user.id}
+        ),
         token_type="bearer",
     )
 
@@ -172,25 +254,40 @@ def refresh_access_token(
     payload: RefreshTokenRequest,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
-    """
-    Validate a refresh token and issue a newly minted access token along with a rotated refresh token.
-    """
-    # Decode and validate refresh token signature and expiration
+    """Validate, revoke, and rotate a refresh token."""
     token_payload = decode_token(payload.refresh_token)
 
-    email: Optional[str] = token_payload.get("sub")
-    token_type: Optional[str] = token_payload.get("type")
+    email = token_payload.get("sub")
+    token_type = token_payload.get("type")
+    expires_at = token_payload.get("exp")
 
-    # Reject if the token is not strictly a refresh token
-    if not email or token_type != "refresh":
+    if token_type != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token type: expected a refresh token",
+            detail="Invalid token: expected a refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Ensure the user exists and is still active
+    if (
+        not email
+        or not isinstance(expires_at, (int, float))
+        or isinstance(expires_at, bool)
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if _check_token_blacklist(payload.refresh_token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     user = db.query(User).filter(User.email == email).first()
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -204,7 +301,10 @@ def refresh_access_token(
             detail="User account is deactivated",
         )
 
-    # Issue newly refreshed token pair with token rotation
+    # Revoke the old refresh token before returning a replacement.
+    # If Redis is unavailable, fail closed and do not issue new tokens.
+    _revoke_token(payload.refresh_token, int(expires_at))
+
     new_access_token = create_access_token(
         data={
             "sub": user.email,
@@ -231,12 +331,9 @@ def refresh_access_token(
 def get_authenticated_user_profile(
     current_user: User = Depends(get_current_user),
 ) -> UserResponse:
-    """
-    Retrieve the profile, role, and granular permissions for the currently authenticated user.
-    Requires a valid Bearer access token in the Authorization header.
-    """
+    """Return the profile of the authenticated user."""
     permissions = (
-        [p.name for p in current_user.role.permissions]
+        [permission.name for permission in current_user.role.permissions]
         if current_user.role
         else []
     )
