@@ -54,7 +54,7 @@ class AuthRepositoryImpl(
                 val jwtExpiry = JwtUtils.getExpirationTimestamp(token)
                 val expiresAt = jwtExpiry ?: (System.currentTimeMillis() + (body.expiresIn ?: 3600L) * 1000L)
 
-                val userId = body.user?.id ?: JwtUtils.getClaim(token, "sub") ?: "tech_${System.currentTimeMillis()}"
+                val userId = body.user?.id ?: JwtUtils.getClaim(token, "user_id") ?: JwtUtils.getClaim(token, "sub") ?: "tech_${System.currentTimeMillis()}"
                 val userEmail = body.user?.email ?: email.trim()
                 val userName = body.user?.name ?: userEmail.substringBefore("@")
                 val userRole = body.user?.role ?: JwtUtils.getClaim(token, "role") ?: "technician"
@@ -114,8 +114,8 @@ class AuthRepositoryImpl(
         }
 
         val storedUser = secureStorage.getUserData()
-        val userId = storedUser?.userId ?: JwtUtils.getClaim(token, "sub") ?: "technician"
-        val userEmail = storedUser?.email ?: JwtUtils.getClaim(token, "email") ?: ""
+        val userId = storedUser?.userId ?: JwtUtils.getClaim(token, "user_id") ?: JwtUtils.getClaim(token, "sub") ?: "technician"
+        val userEmail = storedUser?.email ?: JwtUtils.getClaim(token, "sub") ?: JwtUtils.getClaim(token, "email") ?: ""
         val userName = storedUser?.name ?: userEmail.substringBefore("@")
         val userRole = storedUser?.role ?: JwtUtils.getClaim(token, "role") ?: "technician"
         val expiresAt = JwtUtils.getExpirationTimestamp(token) ?: (System.currentTimeMillis() + 3600000L)
