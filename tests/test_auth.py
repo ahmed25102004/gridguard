@@ -48,6 +48,18 @@ def db_session():
         Base.metadata.drop_all(bind=test_engine)
 
 
+@pytest.fixture(autouse=True)
+def mock_redis_for_auth_tests(monkeypatch):
+    """Ensure Redis operations run against an isolated in-memory fake during tests."""
+    import fakeredis
+    from backend.src.helpers import login_protection, token_blacklist
+
+    fake_redis = fakeredis.FakeRedis(decode_responses=True)
+    monkeypatch.setattr(login_protection, "redis_client", fake_redis)
+    monkeypatch.setattr(token_blacklist, "redis_client", fake_redis)
+    return fake_redis
+
+
 @pytest.fixture(scope="function")
 def client(db_session):
     """
