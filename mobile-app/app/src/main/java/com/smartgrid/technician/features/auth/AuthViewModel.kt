@@ -50,7 +50,7 @@ class AuthViewModel(
         private val EMAIL_REGEX_PATTERN = Pattern.compile(
             "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}$"
         )
-        const val MIN_PASSWORD_LENGTH = 6
+        const val MIN_PASSWORD_LENGTH = 8
     }
 
     init {

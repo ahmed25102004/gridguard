@@ -5,9 +5,7 @@ plugins {
 
 android {
     namespace = "com.smartgrid.technician"
-    compileSdk {
-        version = release(37)
-    }
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.smartgrid.technician"
@@ -30,13 +28,13 @@ android {
             )
         }
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"https://api.smartgrid.example.com/api/v1/\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8000/\"")
         }
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {

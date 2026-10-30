@@ -90,7 +90,7 @@ class AuthViewModelTest {
         val isValid = viewModel.validateInputs()
 
         assertFalse(isValid)
-        assertEquals("Password must be at least 6 characters.", viewModel.uiState.value.passwordError)
+        assertEquals("Password must be at least 8 characters.", viewModel.uiState.value.passwordError)
     }
 
     @Test

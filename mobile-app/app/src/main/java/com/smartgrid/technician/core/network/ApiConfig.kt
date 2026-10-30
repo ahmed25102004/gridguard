@@ -28,5 +28,5 @@ object ApiConfig {
     // Authentication Endpoints
     const val ENDPOINT_LOGIN = "auth/login"
     const val ENDPOINT_REFRESH = "auth/refresh"
-    const val ENDPOINT_PROFILE = "auth/profile"
+    const val ENDPOINT_PROFILE = "auth/me"
 }

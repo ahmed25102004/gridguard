@@ -47,10 +47,10 @@ class SqlCipherLocalDb(
 
         private var isNativeLibLoaded = false
 
-        private fun loadNativeLibrary() {
+        private fun loadNativeLibrary(context: Context) {
             if (!isNativeLibLoaded) {
                 try {
-                    System.loadLibrary("sqlcipher")
+                    SQLiteDatabase.loadLibs(context)
                     isNativeLibLoaded = true
                 } catch (e: UnsatisfiedLinkError) {
                     Log.w(TAG, "SQLCipher native library could not be loaded directly: ${e.message}")
@@ -62,13 +62,13 @@ class SqlCipherLocalDb(
     override fun initialize(passphrase: ByteArray): Boolean {
         return synchronized(this) {
             try {
-                loadNativeLibrary()
+                loadNativeLibrary(context)
                 val dbFile: File = context.getDatabasePath(databaseName)
                 if (!dbFile.parentFile.exists()) {
                     dbFile.parentFile.mkdirs()
                 }
 
-                // Open or create SQLiteDatabase encrypted with SQLCipher AES-256 (تم تعديل هذا السطر)
+                // Open or create SQLiteDatabase encrypted with SQLCipher AES-256
                 database = SQLiteDatabase.openOrCreateDatabase(dbFile.absolutePath, String(passphrase, Charsets.UTF_8), null)
                 createTablesIfNotExist()
                 Log.d(TAG, "Encrypted SQLCipher database initialized successfully.")
