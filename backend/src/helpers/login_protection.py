@@ -1,4 +1,3 @@
-
 import hashlib
 import os
 
@@ -48,13 +47,21 @@ def record_failed_login(email: str, client_ip: str) -> None:
     return 1
     """
 
-    redis_client.eval(
-        script,
-        2,
-        _key("email", email.strip().lower()),
-        _key("ip", client_ip),
-        LOCKOUT_WINDOW_SECONDS,
-    )
+    try:
+        redis_client.eval(
+            script,
+            2,
+            _key("email", email.strip().lower()),
+            _key("ip", client_ip),
+            LOCKOUT_WINDOW_SECONDS,
+        )
+    except redis.exceptions.ResponseError:
+        # Fallback to pipeline when Lua scripting is unsupported (e.g. fakeredis without lupa)
+        pipe = redis_client.pipeline()
+        for key in (_key("email", email.strip().lower()), _key("ip", client_ip)):
+            pipe.incr(key)
+            pipe.expire(key, LOCKOUT_WINDOW_SECONDS)
+        pipe.execute()
 
 
 def clear_account_login_failures(email: str) -> None:
