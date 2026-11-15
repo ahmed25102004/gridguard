@@ -1,0 +1,12 @@
+# ChromaDB local persistence directory
+chroma_db/
+*.parquet
+*.sqlite3
+
+# Python cache & env
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.coverage
+htmlcov/
