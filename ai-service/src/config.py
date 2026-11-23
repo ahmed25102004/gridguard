@@ -1,5 +1,9 @@
+import os
+from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
@@ -21,8 +25,12 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8001
 
+    # Data & Catalogs Storage Configuration
+    DATA_DIR: str = str(_BASE_DIR / "data")
+    MANUALS_DIR: str = str(_BASE_DIR / "data" / "manuals")
+
     # Vector Database (ChromaDB) Configuration
-    CHROMA_PERSIST_DIR: str = "./chroma_db"
+    CHROMA_PERSIST_DIR: str = str(_BASE_DIR / "data" / "chroma_db")
     CHROMA_COLLECTION_NAME: str = "substation_manuals"
 
     # Embedding Provider ("mock", "gemini", "openai")

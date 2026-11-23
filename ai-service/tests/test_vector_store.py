@@ -1,4 +1,5 @@
 import io
+import os
 import shutil
 import sys
 import tempfile
@@ -90,12 +91,17 @@ def sample_pdf_bytes():
 
 @pytest.fixture
 def test_client(temp_chroma_dir):
-    """FastAPI TestClient with isolated temporary ChromaDB vector store."""
+    """FastAPI TestClient with isolated temporary ChromaDB vector store and manuals directory."""
     isolated_store = VectorStoreManager(
         persist_directory=temp_chroma_dir,
         collection_name="test_api_collection",
         embedder=MockEmbedder(dimension=128),
     )
+
+    temp_manuals_dir = os.path.join(temp_chroma_dir, "manuals")
+    os.makedirs(temp_manuals_dir, exist_ok=True)
+    orig_manuals_dir = settings.MANUALS_DIR
+    settings.MANUALS_DIR = temp_manuals_dir
 
     # Monkeypatch the global singleton for the duration of the test
     original_store = main_module.get_vector_store
@@ -105,6 +111,7 @@ def test_client(temp_chroma_dir):
         yield client
 
     main_module.get_vector_store = original_store
+    settings.MANUALS_DIR = orig_manuals_dir
 
 
 # ==========================================
@@ -404,6 +411,8 @@ def test_ingest_manual_pdf_success(test_client, sample_pdf_bytes):
     assert result["total_pages"] == 2
     assert result["chunks_ingested"] >= 2
     assert "ABB_TrafoStar_220kV.pdf" in result["document_name"]
+    assert result["saved_file_path"] is not None
+    assert os.path.exists(result["saved_file_path"])
 
 
 def test_ingest_manual_rejects_non_pdf(test_client):
@@ -467,8 +476,8 @@ def test_query_endpoint_e2e(test_client, sample_pdf_bytes):
 
 
 def test_delete_manual_endpoint(test_client, sample_pdf_bytes):
-    """Test DELETE /manual/{manual_id} removes records from vector collection."""
-    test_client.post(
+    """Test DELETE /manual/{manual_id} removes records from vector collection and removes archived file."""
+    ingest_resp = test_client.post(
         "/ingest/manual",
         files={"file": ("Manual_To_Delete.pdf", sample_pdf_bytes, "application/pdf")},
         data={
@@ -477,7 +486,31 @@ def test_delete_manual_endpoint(test_client, sample_pdf_bytes):
             "manufacturer": "Schneider Electric",
         },
     )
+    saved_path = ingest_resp.json().get("saved_file_path")
+    assert saved_path is not None
+    assert os.path.exists(saved_path)
 
     del_resp = test_client.delete("/manual/MANUAL_TO_DELETE_API")
     assert del_resp.status_code == status.HTTP_200_OK
     assert del_resp.json()["status"] == "success"
+    assert not os.path.exists(saved_path)
+
+
+def test_list_archived_manuals_endpoint(test_client, sample_pdf_bytes):
+    """Test GET /manuals lists stored PDF files in data directory."""
+    test_client.post(
+        "/ingest/manual",
+        files={"file": ("Siemens_Catalog.pdf", sample_pdf_bytes, "application/pdf")},
+        data={
+            "manual_id": "SIEMENS_CATALOG_01",
+            "asset_type": "Relay",
+            "manufacturer": "Siemens",
+        },
+    )
+
+    list_resp = test_client.get("/manuals")
+    assert list_resp.status_code == status.HTTP_200_OK
+    data = list_resp.json()
+    assert data["count"] >= 1
+    filenames = [m["filename"] for m in data["manuals"]]
+    assert any("SIEMENS_CATALOG_01" in f for f in filenames)

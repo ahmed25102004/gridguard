@@ -48,6 +48,16 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# ChromaDB & Vector Store
+chroma_db/
+**/chroma_db/
+*.parquet
+data/manuals/*.pdf
+data/manuals/*.PDF
+data/*.pdf
+ai-service/data/manuals/*.pdf
+ai-service/data/chroma_db/
+
 # Test & coverage artifacts
 .coverage
 htmlcov/

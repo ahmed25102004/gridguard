@@ -59,6 +59,7 @@ class IngestResponse(BaseModel):
     manufacturer: str = Field(..., description="Manufacturer of the equipment")
     total_pages: int = Field(..., description="Number of pages successfully parsed")
     chunks_ingested: int = Field(..., description="Total count of text chunks embedded and stored in ChromaDB")
+    saved_file_path: Optional[str] = Field(default=None, description="Local filesystem path where the uploaded PDF catalog is archived")
     message: str = Field(..., description="Human-readable summary of the ingestion result")
 
 

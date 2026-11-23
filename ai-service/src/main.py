@@ -21,9 +21,10 @@ from .vector_store import VectorStoreManager, get_vector_store
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
-    Initializes vector store on startup and ensures persistence directory exists.
+    Initializes vector store on startup and ensures persistence and data directories exist.
     """
     os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
+    os.makedirs(settings.MANUALS_DIR, exist_ok=True)
     # Warm up vector store instance
     get_vector_store()
     yield
@@ -143,7 +144,18 @@ async def ingest_manual(
             ),
         )
 
-    # 4. Store in ChromaDB persistent vector collection
+    # 4. Save the catalog / manual PDF file to data/manuals/
+    os.makedirs(settings.MANUALS_DIR, exist_ok=True)
+    safe_filename = f"{manual_id.strip()}_{os.path.basename(filename)}"
+    saved_file_path = os.path.join(settings.MANUALS_DIR, safe_filename)
+    try:
+        with open(saved_file_path, "wb") as f_out:
+            f_out.write(content)
+    except Exception as exc:
+        # If disk write fails, continue with vector ingestion but log or keep path None
+        saved_file_path = None
+
+    # 5. Store in ChromaDB persistent vector collection
     vstore = get_vector_store()
     chunks_stored = vstore.add_chunks(all_chunks)
 
@@ -155,8 +167,35 @@ async def ingest_manual(
         manufacturer=manufacturer.strip(),
         total_pages=total_pages,
         chunks_ingested=chunks_stored,
-        message=f"Successfully ingested {chunks_stored} chunks across {total_pages} pages into ChromaDB.",
+        saved_file_path=saved_file_path,
+        message=f"Successfully ingested {chunks_stored} chunks across {total_pages} pages into ChromaDB and archived catalog PDF.",
     )
+
+
+@app.get(
+    "/manuals",
+    summary="List Archived Manuals & Catalogs",
+    tags=["Ingestion"],
+)
+def list_archived_manuals():
+    """
+    List all archived PDF manuals and datasheets stored in the data directory.
+    """
+    if not os.path.exists(settings.MANUALS_DIR):
+        return {"manuals": [], "count": 0}
+
+    files = []
+    for f in os.listdir(settings.MANUALS_DIR):
+        if f.lower().endswith(".pdf"):
+            f_path = os.path.join(settings.MANUALS_DIR, f)
+            stats = os.stat(f_path)
+            files.append({
+                "filename": f,
+                "size_bytes": stats.st_size,
+                "last_modified": stats.st_mtime,
+                "path": f_path,
+            })
+    return {"manuals": files, "count": len(files)}
 
 
 @app.post(
@@ -201,12 +240,22 @@ def query_knowledge_base(request: QueryRequest):
 )
 def delete_manual_endpoint(manual_id: str):
     """
-    Delete all vector records associated with a manual ID.
+    Delete all vector records associated with a manual ID and remove the archived file.
     """
     vstore = get_vector_store()
     vstore.delete_manual(manual_id)
+
+    # Clean up physical catalog PDF file from manuals directory
+    if os.path.exists(settings.MANUALS_DIR):
+        for f_name in os.listdir(settings.MANUALS_DIR):
+            if f_name.startswith(f"{manual_id.strip()}_"):
+                try:
+                    os.remove(os.path.join(settings.MANUALS_DIR, f_name))
+                except OSError:
+                    pass
+
     return {
         "status": "success",
         "manual_id": manual_id,
-        "message": f"All vectors for manual '{manual_id}' have been removed.",
+        "message": f"All vectors and archived files for manual '{manual_id}' have been removed.",
     }
