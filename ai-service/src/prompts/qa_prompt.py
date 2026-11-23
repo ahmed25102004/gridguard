@@ -92,25 +92,48 @@ def generate_grounded_answer(
             max_similarity=max_sim,
         )
 
-    # In baseline Sprint 1, construct the grounded answer directly with citations
+    # Synthesize grounded answer
     grounded_points = []
     for cit in citations:
         if cit.similarity_score >= threshold:
-            # Extract first sentence or headline from excerpt
-            excerpt_summary = cit.excerpt.strip().split("\n")[0][:180]
+            # Clean excerpt lines
+            lines = [l.strip() for l in cit.excerpt.strip().split("\n") if l.strip()]
+            key_text = " ".join(lines[:3])[:300]
             grounded_points.append(
-                f"- {excerpt_summary} [Document: {cit.document_name} | Page: {cit.page_num}]"
+                f"- {key_text}... [Document: {cit.document_name} | Page: {cit.page_num}]"
             )
 
     if not grounded_points:
         answer = UNGROUNDED_FALLBACK_MESSAGE
         is_grounded = False
     else:
+        # Default structured grounded answer
         answer = (
             f"Based on verified substation equipment documentation:\n\n"
-            + "\n".join(grounded_points)
+            + "\n\n".join(grounded_points)
         )
         is_grounded = True
+
+        # If Gemini API Key is configured, attempt advanced LLM synthesis
+        if settings.GEMINI_API_KEY:
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=settings.GEMINI_API_KEY)
+                # Try latest supported flash models
+                for model_candidate in ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"]:
+                    try:
+                        llm = genai.GenerativeModel(model_candidate)
+                        qa_prompt = build_qa_prompt(query=query, citations=citations)
+                        resp = llm.generate_content(qa_prompt, request_options={"timeout": 10})
+                        if resp and resp.text and resp.text.strip():
+                            answer = resp.text.strip()
+                            is_grounded = UNGROUNDED_FALLBACK_MESSAGE not in answer
+                            break
+                    except Exception:
+                        continue
+            except Exception:
+                # Keep deterministic baseline answer if API call fails or quota is exhausted
+                pass
 
     valid_citations = [c for c in citations if c.similarity_score >= threshold]
     relevant_images: List[str] = []

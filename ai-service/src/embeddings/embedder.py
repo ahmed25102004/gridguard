@@ -85,13 +85,19 @@ class GeminiEmbedder(BaseEmbedder):
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         results = []
-        for text in texts:
+        batch_size = 25
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i : i + batch_size]
             response = self._client.embed_content(
                 model=self.model_name,
-                content=text,
+                content=batch,
                 task_type="retrieval_document",
             )
-            results.append(response["embedding"])
+            embs = response.get("embedding", [])
+            for e in embs:
+                if isinstance(e, dict) and "values" in e:
+                    e = e["values"]
+                results.append(e)
         return results
 
     def embed_query(self, text: str) -> List[float]:
@@ -100,7 +106,10 @@ class GeminiEmbedder(BaseEmbedder):
             content=text,
             task_type="retrieval_query",
         )
-        return response["embedding"]
+        emb = response.get("embedding", [])
+        if isinstance(emb, dict) and "values" in emb:
+            emb = emb["values"]
+        return emb
 
 
 class OpenAIEmbedder(BaseEmbedder):

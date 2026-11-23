@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "ai-service/.env", str(_BASE_DIR / ".env")),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -36,7 +36,7 @@ class Settings(BaseSettings):
 
     # Embedding Provider ("mock", "gemini", "openai")
     EMBEDDING_PROVIDER: str = "mock"
-    EMBEDDING_MODEL_NAME: str = "models/text-embedding-004"
+    EMBEDDING_MODEL_NAME: str = "models/gemini-embedding-001"
     GEMINI_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
 
