@@ -59,6 +59,36 @@ def build_qa_prompt(query: str, citations: List[Citation]) -> str:
     return f"{system_part}\n\n{user_part}"
 
 
+def _extract_clean_summary(excerpt: str, max_chars: int = 240) -> str:
+    """
+    Extract coherent, complete sentences from an excerpt avoiding trailing or mid-sentence fragments.
+    """
+    import re
+    cleaned = " ".join([line.strip() for line in excerpt.splitlines() if line.strip()])
+    
+    # Strip any broken leading partial word or orphaned punctuation
+    cleaned = re.sub(r"^[a-z0-9\W_]{1,10}\s+", "", cleaned)
+
+    # Match complete sentences ending in punctuation or bullets
+    sentences = re.split(r"(?<=[.!?])\s+", cleaned)
+    selected = []
+    curr_len = 0
+    for s in sentences:
+        s = s.strip()
+        if not s:
+            continue
+        selected.append(s)
+        curr_len += len(s)
+        if curr_len >= max_chars:
+            break
+    if selected:
+        res = " ".join(selected)
+        if not res.endswith((".", "!", "?")):
+            res += "."
+        return res
+    return cleaned[:max_chars].rstrip() + "."
+
+
 def generate_grounded_answer(
     query: str,
     citations: List[Citation],
@@ -96,11 +126,9 @@ def generate_grounded_answer(
     grounded_points = []
     for cit in citations:
         if cit.similarity_score >= threshold:
-            # Clean excerpt lines
-            lines = [l.strip() for l in cit.excerpt.strip().split("\n") if l.strip()]
-            key_text = " ".join(lines[:3])[:300]
+            summary = _extract_clean_summary(cit.excerpt)
             grounded_points.append(
-                f"- {key_text}... [Document: {cit.document_name} | Page: {cit.page_num}]"
+                f"- {summary} [Document: {cit.document_name} | Page: {cit.page_num}]"
             )
 
     if not grounded_points:
@@ -108,10 +136,9 @@ def generate_grounded_answer(
         is_grounded = False
     else:
         # Default structured grounded answer
-        answer = (
-            f"Based on verified substation equipment documentation:\n\n"
-            + "\n\n".join(grounded_points)
-        )
+        top_cit = citations[0]
+        header = f"Based on verified substation equipment documentation for {top_cit.manufacturer} ({top_cit.asset_type}):"
+        answer = f"{header}\n\n" + "\n\n".join(grounded_points)
         is_grounded = True
 
         # If Gemini API Key is configured, attempt advanced LLM synthesis
@@ -119,20 +146,14 @@ def generate_grounded_answer(
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=settings.GEMINI_API_KEY)
-                # Try latest supported flash models
-                for model_candidate in ["gemini-3.8-flash", "gemini-flash-latest", "gemini-3.5-flash"]:
-                    try:
-                        llm = genai.GenerativeModel(model_candidate)
-                        qa_prompt = build_qa_prompt(query=query, citations=citations)
-                        resp = llm.generate_content(qa_prompt, request_options={"timeout": 10})
-                        if resp and resp.text and resp.text.strip():
-                            answer = resp.text.strip()
-                            is_grounded = UNGROUNDED_FALLBACK_MESSAGE not in answer
-                            break
-                    except Exception:
-                        continue
+                llm = genai.GenerativeModel("gemini-3.8-flash")
+                qa_prompt = build_qa_prompt(query=query, citations=citations)
+                resp = llm.generate_content(qa_prompt, request_options={"timeout": 4})
+                if resp and resp.text and resp.text.strip():
+                    answer = resp.text.strip()
+                    is_grounded = UNGROUNDED_FALLBACK_MESSAGE not in answer
             except Exception:
-                # Keep deterministic baseline answer if API call fails or quota is exhausted
+                # Keep clean structured grounded answer if API call fails or quota is exhausted
                 pass
 
     valid_citations = [c for c in citations if c.similarity_score >= threshold]

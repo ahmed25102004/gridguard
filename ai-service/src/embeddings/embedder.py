@@ -193,18 +193,25 @@ def chunk_text_by_page(
     text_length = len(cleaned_text)
 
     while start < text_length:
-        end = start + size
-        chunk_segment = cleaned_text[start:end]
+        end = min(start + size, text_length)
 
-        # Break at word boundary if not at end of text
+        # Break at sentence or word boundary if not at end of text
         if end < text_length:
-            last_space = chunk_segment.rfind(" ")
-            if last_space > size // 2:
-                chunk_segment = chunk_segment[:last_space]
-                end = start + last_space
+            # Look for sentence boundary (. or ? or !) in the last 25% of the window
+            sentence_end = max(
+                cleaned_text.rfind(". ", start, end),
+                cleaned_text.rfind(".\n", start, end),
+                cleaned_text.rfind("; ", start, end),
+            )
+            if sentence_end > start + (size * 0.6):
+                end = sentence_end + 1
+            else:
+                last_space = cleaned_text.rfind(" ", start, end)
+                if last_space > start + (size // 2):
+                    end = last_space
 
-        chunk_str = chunk_segment.strip()
-        if chunk_str:
+        chunk_segment = cleaned_text[start:end].strip()
+        if chunk_segment:
             chunk_id = f"{manual_id}_p{page_num}_c{chunk_idx}"
             chunks.append(
                 DocumentChunk(
@@ -215,7 +222,7 @@ def chunk_text_by_page(
                     document_name=document_name,
                     page_num=page_num,
                     chunk_index=chunk_idx,
-                    chunk_text=chunk_str,
+                    chunk_text=chunk_segment,
                     images=page_images,
                     tables=page_tables,
                     metadata={
@@ -230,10 +237,16 @@ def chunk_text_by_page(
             )
             chunk_idx += 1
 
-        start = end - overlap
-        if start <= 0 and chunk_idx > 0:
-            start = end
         if end >= text_length:
             break
+
+        # Calculate next start position using overlap without cutting mid-word
+        next_start = max(start + 1, end - overlap)
+        if next_start < text_length:
+            # Advance next_start to the next space or word boundary so chunks never start mid-word
+            space_pos = cleaned_text.find(" ", next_start)
+            if space_pos != -1 and space_pos < next_start + 40:
+                next_start = space_pos + 1
+        start = next_start
 
     return chunks
