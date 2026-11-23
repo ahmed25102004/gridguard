@@ -112,10 +112,18 @@ def generate_grounded_answer(
         )
         is_grounded = True
 
+    valid_citations = [c for c in citations if c.similarity_score >= threshold]
+    relevant_images: List[str] = []
+    for c in valid_citations:
+        for img in c.images:
+            if img not in relevant_images:
+                relevant_images.append(img)
+
     return QueryResponse(
         query=query,
         answer=answer,
-        citations=[c for c in citations if c.similarity_score >= threshold],
+        citations=valid_citations,
+        images=relevant_images,
         is_grounded=is_grounded,
         max_similarity=max_sim,
     )

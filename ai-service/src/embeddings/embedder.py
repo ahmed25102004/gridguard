@@ -161,6 +161,8 @@ def chunk_text_by_page(
     document_name: str,
     chunk_size: Optional[int] = None,
     chunk_overlap: Optional[int] = None,
+    images: Optional[List[str]] = None,
+    tables: Optional[List[str]] = None,
 ) -> List[DocumentChunk]:
     """
     Chunk raw extracted page text into overlapping windows, strictly preserving
@@ -168,6 +170,8 @@ def chunk_text_by_page(
     """
     size = chunk_size or settings.CHUNK_SIZE
     overlap = chunk_overlap or settings.CHUNK_OVERLAP
+    page_images = images or []
+    page_tables = tables or []
 
     if not text or not text.strip():
         return []
@@ -203,6 +207,8 @@ def chunk_text_by_page(
                     page_num=page_num,
                     chunk_index=chunk_idx,
                     chunk_text=chunk_str,
+                    images=page_images,
+                    tables=page_tables,
                     metadata={
                         "manual_id": manual_id,
                         "asset_type": asset_type,

@@ -1,13 +1,16 @@
 import io
 import os
+import shutil
 from contextlib import asynccontextmanager
 from typing import Optional
 import pymupdf
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .config import settings
 from .embeddings.embedder import chunk_text_by_page, get_embedder
+from .extraction import extract_page_content_and_media
 from .prompts.qa_prompt import generate_grounded_answer
 from .schemas.document import (
     IngestResponse,
@@ -25,6 +28,7 @@ async def lifespan(app: FastAPI):
     """
     os.makedirs(settings.CHROMA_PERSIST_DIR, exist_ok=True)
     os.makedirs(settings.MANUALS_DIR, exist_ok=True)
+    os.makedirs(settings.IMAGES_DIR, exist_ok=True)
     # Warm up vector store instance
     get_vector_store()
     yield
@@ -36,6 +40,10 @@ app = FastAPI(
     version=settings.SERVICE_VERSION,
     lifespan=lifespan,
 )
+
+# Static file mount for extracted equipment diagrams and images
+os.makedirs(settings.IMAGES_DIR, exist_ok=True)
+app.mount("/images", StaticFiles(directory=settings.IMAGES_DIR), name="images")
 
 # CORS configuration allowing dashboard and client connections
 app.add_middleware(
@@ -114,13 +122,21 @@ async def ingest_manual(
         )
 
     all_chunks = []
+    total_extracted_images = 0
+    total_extracted_tables = 0
 
-    # 3. Extract text page-by-page preserving 1-based page numbers
+    # 3. Extract text, structured tables, and technical diagrams page-by-page
     for page_idx in range(total_pages):
-        page = pdf_doc.load_page(page_idx)
-        page_text = page.get_text("text") or ""
-        page_num = page_idx + 1
+        page_text, page_images, page_tables = extract_page_content_and_media(
+            doc=pdf_doc,
+            page_idx=page_idx,
+            manual_id=manual_id.strip(),
+            images_base_dir=settings.IMAGES_DIR,
+        )
+        total_extracted_images += len(page_images)
+        total_extracted_tables += len(page_tables)
 
+        page_num = page_idx + 1
         chunks = chunk_text_by_page(
             text=page_text,
             page_num=page_num,
@@ -130,6 +146,8 @@ async def ingest_manual(
             document_name=filename,
             chunk_size=settings.CHUNK_SIZE,
             chunk_overlap=settings.CHUNK_OVERLAP,
+            images=page_images,
+            tables=page_tables,
         )
         all_chunks.extend(chunks)
 
@@ -151,8 +169,8 @@ async def ingest_manual(
     try:
         with open(saved_file_path, "wb") as f_out:
             f_out.write(content)
-    except Exception as exc:
-        # If disk write fails, continue with vector ingestion but log or keep path None
+    except Exception:
+        # If disk write fails, continue with vector ingestion
         saved_file_path = None
 
     # 5. Store in ChromaDB persistent vector collection
@@ -167,8 +185,13 @@ async def ingest_manual(
         manufacturer=manufacturer.strip(),
         total_pages=total_pages,
         chunks_ingested=chunks_stored,
+        images_extracted=total_extracted_images,
+        tables_extracted=total_extracted_tables,
         saved_file_path=saved_file_path,
-        message=f"Successfully ingested {chunks_stored} chunks across {total_pages} pages into ChromaDB and archived catalog PDF.",
+        message=(
+            f"Successfully ingested {chunks_stored} chunks across {total_pages} pages into ChromaDB "
+            f"({total_extracted_tables} tables, {total_extracted_images} diagrams/images archived)."
+        ),
     )
 
 
@@ -253,6 +276,11 @@ def delete_manual_endpoint(manual_id: str):
                     os.remove(os.path.join(settings.MANUALS_DIR, f_name))
                 except OSError:
                     pass
+
+    # Clean up extracted diagrams and images for this manual
+    manual_img_dir = os.path.join(settings.IMAGES_DIR, manual_id.strip())
+    if os.path.exists(manual_img_dir):
+        shutil.rmtree(manual_img_dir, ignore_errors=True)
 
     return {
         "status": "success",

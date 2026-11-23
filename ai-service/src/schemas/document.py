@@ -45,6 +45,8 @@ class DocumentChunk(BaseModel):
     page_num: int = Field(..., ge=1, description="1-indexed physical page number in the original PDF manual")
     chunk_index: int = Field(..., ge=0, description="Sequential index of the chunk within the document page")
     chunk_text: str = Field(..., min_length=1, description="The textual content of the chunk")
+    images: List[str] = Field(default_factory=list, description="Relative URLs of technical diagrams/drawings on this page")
+    tables: List[str] = Field(default_factory=list, description="Markdown tables extracted from this page")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary additional chunk metadata")
 
 
@@ -59,6 +61,8 @@ class IngestResponse(BaseModel):
     manufacturer: str = Field(..., description="Manufacturer of the equipment")
     total_pages: int = Field(..., description="Number of pages successfully parsed")
     chunks_ingested: int = Field(..., description="Total count of text chunks embedded and stored in ChromaDB")
+    images_extracted: int = Field(default=0, description="Total technical diagrams/images extracted")
+    tables_extracted: int = Field(default=0, description="Total structured tables extracted")
     saved_file_path: Optional[str] = Field(default=None, description="Local filesystem path where the uploaded PDF catalog is archived")
     message: str = Field(..., description="Human-readable summary of the ingestion result")
 
@@ -74,6 +78,7 @@ class Citation(BaseModel):
     page_num: int = Field(..., description="1-based page number where the fact was cited from")
     similarity_score: float = Field(..., ge=0.0, le=1.0, description="Cosine similarity score (0.0 to 1.0)")
     excerpt: str = Field(..., description="Relevant text excerpt supporting the citation")
+    images: List[str] = Field(default_factory=list, description="Technical diagrams or drawings extracted from the cited page")
 
 
 class QueryRequest(BaseModel):
@@ -94,5 +99,6 @@ class QueryResponse(BaseModel):
     query: str = Field(..., description="The original user query")
     answer: str = Field(..., description="Grounded technical answer with inline citations or fallback message")
     citations: List[Citation] = Field(default_factory=list, description="List of source citations with exact page numbers")
+    images: List[str] = Field(default_factory=list, description="Relevant technical diagrams or drawings accompanying the answer")
     is_grounded: bool = Field(..., description="True if answer is backed by relevant manual context above threshold")
     max_similarity: float = Field(..., description="Highest cosine similarity score among retrieved chunks")

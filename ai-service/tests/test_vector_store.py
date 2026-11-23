@@ -103,6 +103,11 @@ def test_client(temp_chroma_dir):
     orig_manuals_dir = settings.MANUALS_DIR
     settings.MANUALS_DIR = temp_manuals_dir
 
+    temp_images_dir = os.path.join(temp_chroma_dir, "images")
+    os.makedirs(temp_images_dir, exist_ok=True)
+    orig_images_dir = settings.IMAGES_DIR
+    settings.IMAGES_DIR = temp_images_dir
+
     # Monkeypatch the global singleton for the duration of the test
     original_store = main_module.get_vector_store
     main_module.get_vector_store = lambda: isolated_store
@@ -112,6 +117,7 @@ def test_client(temp_chroma_dir):
 
     main_module.get_vector_store = original_store
     settings.MANUALS_DIR = orig_manuals_dir
+    settings.IMAGES_DIR = orig_images_dir
 
 
 # ==========================================
@@ -473,6 +479,33 @@ def test_query_endpoint_e2e(test_client, sample_pdf_bytes):
     assert "query" in data
     assert "answer" in data
     assert "citations" in data
+
+
+def test_query_endpoint_with_multiple_filters(test_client, sample_pdf_bytes):
+    """Test POST /query with multiple filter fields (manual_id, manufacturer, asset_type) using ChromaDB $and operator."""
+    test_client.post(
+        "/ingest/manual",
+        files={"file": ("ABB_TrafoStar.pdf", sample_pdf_bytes, "application/pdf")},
+        data={
+            "manual_id": "ABB_DIST_TRAFO_01",
+            "asset_type": "Distribution Transformer",
+            "manufacturer": "ABB",
+        },
+    )
+
+    query_payload = {
+        "query": "What is the operating oil temperature limit?",
+        "manual_id": "ABB_DIST_TRAFO_01",
+        "manufacturer": "ABB",
+        "asset_type": "Distribution Transformer",
+        "top_k": 3,
+    }
+
+    response = test_client.post("/query", json=query_payload)
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert "query" in data
+    assert "answer" in data
 
 
 def test_delete_manual_endpoint(test_client, sample_pdf_bytes):

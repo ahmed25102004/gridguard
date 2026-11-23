@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List, Optional
 import chromadb
 from chromadb.config import Settings as ChromaSettings
@@ -61,6 +62,7 @@ class VectorStoreManager:
                 "document_name": c.document_name,
                 "page_num": int(c.page_num),
                 "chunk_index": int(c.chunk_index),
+                "images": json.dumps(c.images),
             }
             for c in chunks
         ]
@@ -98,7 +100,12 @@ class VectorStoreManager:
         }
 
         if filter_dict:
-            query_args["where"] = filter_dict
+            # ChromaDB requires $and logical operator when filtering on multiple fields
+            items = [{k: v} for k, v in filter_dict.items() if v is not None and str(v).strip()]
+            if len(items) == 1:
+                query_args["where"] = items[0]
+            elif len(items) > 1:
+                query_args["where"] = {"$and": items}
 
         # If collection is empty, return empty list
         if self.collection.count() == 0:
@@ -123,6 +130,12 @@ class VectorStoreManager:
             # Convert cosine distance to a [0.0, 1.0] similarity metric
             similarity = max(0.0, min(1.0, 1.0 - distance))
 
+            raw_images = meta.get("images", "[]")
+            try:
+                cit_images = json.loads(raw_images) if isinstance(raw_images, str) else []
+            except Exception:
+                cit_images = []
+
             citations.append(
                 Citation(
                     document_name=str(meta.get("document_name", "Unknown Manual")),
@@ -132,6 +145,7 @@ class VectorStoreManager:
                     page_num=int(meta.get("page_num", 1)),
                     similarity_score=round(similarity, 4),
                     excerpt=doc_text,
+                    images=cit_images,
                 )
             )
 

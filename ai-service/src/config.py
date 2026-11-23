@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     # Data & Catalogs Storage Configuration
     DATA_DIR: str = str(_BASE_DIR / "data")
     MANUALS_DIR: str = str(_BASE_DIR / "data" / "manuals")
+    IMAGES_DIR: str = str(_BASE_DIR / "data" / "images")
 
     # Vector Database (ChromaDB) Configuration
     CHROMA_PERSIST_DIR: str = str(_BASE_DIR / "data" / "chroma_db")
