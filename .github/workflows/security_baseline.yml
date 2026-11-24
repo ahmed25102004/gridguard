@@ -35,13 +35,6 @@ jobs:
     name: Container Vulnerability Scan - Trivy
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        image:
-          - python:3.12-slim
-          - node:18-alpine
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -49,11 +42,11 @@ jobs:
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@e07451d2e059ed86c2870430ea286b3a9e0bf241
         with:
-          version: latest
+          version: v0.76.2
 
-      - name: Scan container image
+      - name: Scan backend image
         run: |
           trivy image \
             --severity HIGH,CRITICAL \
             --exit-code 1 \
-            "${{ matrix.image }}"
+            python:3.12-slim

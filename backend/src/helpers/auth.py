@@ -24,7 +24,10 @@ SECRET_KEY = os.getenv(
     "JWT_SECRET_KEY", "gridguard-default-development-secret-key-32-chars-min"
 )
 
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256").strip().upper()
+
+if ALGORITHM != "HS256":
+    raise RuntimeError("JWT_ALGORITHM must be HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
