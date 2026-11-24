@@ -36,6 +36,18 @@ else:
 
 engine = create_engine(DATABASE_URL, **engine_kwargs)
 
+if "sqlite" in DATABASE_URL:
+    from sqlalchemy import event
+    import geoalchemy2.admin.dialects.sqlite as sqlite_admin
+    sqlite_admin.after_create = lambda *args, **kwargs: None
+    sqlite_admin.before_drop = lambda *args, **kwargs: None
+
+    @event.listens_for(engine, "connect")
+    def _setup_sqlite_spatial(dbapi_connection, connection_record):
+        dbapi_connection.create_function("GeomFromEWKT", 1, lambda x: x)
+        dbapi_connection.create_function("AsEWKB", 1, lambda x: x)
+        dbapi_connection.create_function("ST_AsBinary", 1, lambda x: x)
+
 # Scoped session factory for database operations
 SessionLocal = sessionmaker(
     autocommit=False,

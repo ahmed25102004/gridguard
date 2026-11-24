@@ -52,3 +52,13 @@ Thumbs.db
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Node.js & Next.js
+node_modules/
+.next/
+out/
+dist/
+
+# Local Vector DB & AI Service Data
+chroma_db/
+ai-service/data/
