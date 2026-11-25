@@ -296,7 +296,7 @@ export default function AssetsPage() {
             </button>
             <button
               onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#ef5816] rounded-xl shadow-sm transition cursor-pointer"
             >
               <PlusCircle className="w-4 h-4" />
               <span>+ Register Asset</span>
