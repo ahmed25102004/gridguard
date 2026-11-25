@@ -8,24 +8,13 @@ import {
   Layers,
   Sparkles,
   BookOpen,
-  AlertTriangle,
+  AlertCircle,
   CheckCircle2,
-  Clock,
-  Gauge,
-  Thermometer,
-  Wrench,
-  Download,
-  ExternalLink,
+  Sliders,
   ChevronRight,
-  Flame,
-  Wind,
-  Sun,
-  Train,
-  Factory,
-  Cpu,
   ArrowUpRight,
   FileText,
-  SlidersHorizontal,
+  RotateCcw,
 } from "lucide-react";
 
 type SolutionCategory = "transmission" | "distribution" | "renewable" | "industrial";
@@ -37,7 +26,6 @@ interface SolutionItem {
   subtitle: string;
   voltageRating: string;
   oemPartners: string[];
-  imagePlaceholder: string;
   coreChallenge: string;
   diagnosticAction: string;
   ragProcedure: {
@@ -55,7 +43,7 @@ interface SolutionItem {
   };
   defaultTelemetry: {
     temperature: number; // °C
-    pressure: number; // MPa (for SF6) or bar
+    pressure: number; // MPa
     bdvVoltage: number; // kV
     loadPercentage: number; // %
   };
@@ -65,22 +53,21 @@ const SOLUTIONS_DATA: SolutionItem[] = [
   {
     id: "sol-1",
     category: "transmission",
-    title: "High-Voltage Power Transformer Diagnostics (110kV – 500kV)",
+    title: "High-Voltage Power Transformer Diagnostics",
     subtitle: "Oil-Immersed Step-Down & Generator Step-Up (GSU) Transformers",
-    voltageRating: "220 / 33 kV • 40 MVA – 125 MVA",
+    voltageRating: "220 / 33 kV • 40 – 125 MVA",
     oemPartners: ["ABB", "Siemens Energy", "Hitachi Energy"],
-    imagePlaceholder: "transformer",
     coreChallenge:
-      "Dielectric degradation of mineral oil under high thermal and electrical stress, accompanied by dissolved combustible gases (Hydrogen, Acetylene, Methane) and winding overheating.",
+      "Dielectric degradation of mineral oil under thermal and electrical stress, accompanied by combustible gas buildup (Hydrogen, Acetylene) and winding overheating.",
     diagnosticAction:
-      "Continuously computes Dielectric Health Index, OTI/WTI thermal stress, and predicts flashover risks using Random Forest baseline regressors.",
+      "Continuously monitors dielectric breakdown voltage (BDV), winding temperature gradient (WTI), and computes failure probability using validated regression models.",
     ragProcedure: {
       oem: "ABB",
       manualName: "ABB_DIST_TRAFO_01_distribution-transformer-installation-manual.pdf",
       page: 13,
-      citation: "ABB Transformer Manual (Page 13, Commissioning Section)",
+      citation: "ABB Transformer Installation & Maintenance Manual (Page 13)",
       procedureText:
-        "Perform oil sampling according to IEC 60422. If Breakdown Voltage (BDV) falls below 50 kV or moisture exceeds 20 ppm, isolate unit and initiate online filtration. Maintain mandatory settling time as per table specifications.",
+        "Perform oil sampling according to IEC 60422. If Breakdown Voltage (BDV) falls below 50 kV or moisture exceeds 20 ppm, isolate unit and initiate oil filtration. Adhere strictly to the settling time matrix.",
       tableSummary: "kV Class vs. Required Settling Time (hrs) following oil filtration.",
     },
     metrics: {
@@ -99,21 +86,20 @@ const SOLUTIONS_DATA: SolutionItem[] = [
     id: "sol-2",
     category: "transmission",
     title: "Gas-Insulated Switchgear (GIS) & Vacuum Circuit Breakers",
-    subtitle: "SF6 High-Voltage Enclosed Substation Switchgear",
-    voltageRating: "Up to 40.5 kV / 220 kV Single-Pole Enclosed",
+    subtitle: "Single-Pole Enclosed High-Voltage Gas Compartments",
+    voltageRating: "Up to 40.5 kV / 220 kV Enclosed",
     oemPartners: ["Siemens 8DA10", "ABB", "Schneider Electric"],
-    imagePlaceholder: "gis",
     coreChallenge:
-      "SF6 gas density loss due to micro-leakages around busbar compartment seals and rupture diaphragms, leading to circuit breaker trip lockout.",
+      "SF6 gas density loss due to seal degradation around busbar compartments and rupture diaphragms, triggering circuit breaker lockout.",
     diagnosticAction:
-      "Real-time temperature-compensated density tracking and automated stage-1 alarm (0.55 MPa) and stage-2 lockout threshold (0.50 MPa) enforcement.",
+      "Real-time temperature-compensated density tracking enforcing stage-1 alarm (0.55 MPa) and stage-2 lockout threshold (0.50 MPa).",
     ragProcedure: {
       oem: "Siemens",
       manualName: "861-96019-en-07-11-17.pdf",
       page: 24,
       citation: "Siemens 8DA10 Installation & Operating Instructions (Page 24)",
       procedureText:
-        "Inspect gas compartment rupture disks and density monitors immediately. Do not manually trip breaker if pressure drops below 0.50 MPa lockout. Top up SF6 using clean gas handling cart according to Section 11 specifications.",
+        "Inspect rupture disks and density monitors immediately. Do not manually trip breaker if pressure drops below 0.50 MPa lockout. Top up SF6 using clean gas handling cart according to Section 11 specifications.",
       tableSummary: "Mounting Locations, Disconnector Types (4MT3 / 4MU4), and Pressure Limits.",
     },
     metrics: {
@@ -133,11 +119,10 @@ const SOLUTIONS_DATA: SolutionItem[] = [
     category: "distribution",
     title: "Medium-Voltage Distribution Substations & RMU",
     subtitle: "Cast Resin Dry-Type & Compact Distribution Transformers",
-    voltageRating: "11 kV / 22 kV • 500 kVA – 2500 kVA",
+    voltageRating: "11 kV / 22 kV • 500 – 2500 kVA",
     oemPartners: ["Schneider Electric", "Elsewedy Electric", "ABB Resibloc"],
-    imagePlaceholder: "distribution",
     coreChallenge:
-      "Harmonic distortion from nonlinear urban loads, phase load imbalances, and localized thermal hotspots in compact enclosures.",
+      "Harmonic distortion from nonlinear urban loads, phase load imbalances, and localized hotspots in compact enclosures.",
     diagnosticAction:
       "Analyzes load ratios, ambient-to-winding temperature gradients, and predicts thermal insulation degradation across distribution clusters.",
     ragProcedure: {
@@ -164,15 +149,14 @@ const SOLUTIONS_DATA: SolutionItem[] = [
   {
     id: "sol-4",
     category: "renewable",
-    title: "Solar PV & Wind Inverter-Duty Substation Transformers",
+    title: "Solar PV & Wind Inverter-Duty Transformers",
     subtitle: "Step-Up Transformers for Clean Energy Farms & BESS",
-    voltageRating: "0.69 kV / 33 kV Step-Up • Cyclic Load Resilient",
+    voltageRating: "0.69 kV / 33 kV Step-Up",
     oemPartners: ["Hitachi Energy", "Siemens Energy", "GE Vernova"],
-    imagePlaceholder: "renewable",
     coreChallenge:
-      "Extreme thermal cycling caused by intermittent solar irradiance and wind gusts, inducing rapid cyclic expansion of insulating oil and gaskets.",
+      "Extreme thermal cycling caused by intermittent solar irradiance and wind gusts, inducing cyclic mechanical strain on insulating oil and gaskets.",
     diagnosticAction:
-      "Integrates weather forecasting with thermal dynamics to dynamically derate transformers during high-ambient heatwaves.",
+      "Integrates weather forecasting with thermal dynamics to dynamically calculate thermal stress and prevent insulation aging.",
     ragProcedure: {
       oem: "Hitachi Energy",
       manualName: "Hitachi_Solar_Inverter_StepUp_Transformer.pdf",
@@ -207,20 +191,20 @@ export function SolutionsView({
   const [activeSolutionId, setActiveSolutionId] = useState<string>("sol-1");
 
   // Interactive Live Workbench State
-  const [simTemp, setSimTemp] = useState<number>(72);
-  const [simPressure, setSimPressure] = useState<number>(0.54);
-  const [simBdv, setSimBdv] = useState<number>(54);
-  const [simLoad, setSimLoad] = useState<number>(82);
+  const [simTemp, setSimTemp] = useState<number>(68);
+  const [simPressure, setSimPressure] = useState<number>(0.56);
+  const [simBdv, setSimBdv] = useState<number>(58);
+  const [simLoad, setSimLoad] = useState<number>(75);
 
   const activeSolution =
     SOLUTIONS_DATA.find((s) => s.id === activeSolutionId) || SOLUTIONS_DATA[0];
 
-  // Calculate live dynamic risk based on simulation
+  // Calculate live dynamic risk
   const calcRiskScore = () => {
-    let risk = 10;
+    let risk = 8;
     if (simTemp > 75) risk += (simTemp - 75) * 1.8;
     if (simPressure < 0.52) risk += (0.52 - simPressure) * 350;
-    if (simBdv < 50) risk += (50 - simBdv) * 2.5;
+    if (simBdv < 50) risk += (50 - simBdv) * 2.2;
     if (simLoad > 85) risk += (simLoad - 85) * 1.2;
     return Math.min(Math.round(risk), 98);
   };
@@ -232,175 +216,122 @@ export function SolutionsView({
     (s) => s.category === selectedCategory
   );
 
-  return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* 1. Header Hero Banner - Inspired by ZDBYQ High-Tech Energy Aesthetic */}
-      <div
-        className={`relative overflow-hidden rounded-3xl p-6 sm:p-10 border transition-all duration-300 shadow-2xl ${
-          theme === "dark"
-            ? "bg-gradient-to-br from-[#0c1427] via-[#09101f] to-[#060a14] border-slate-800/80"
-            : "bg-gradient-to-br from-blue-50/80 via-white to-indigo-50/60 border-blue-100 shadow-blue-500/5"
-        }`}
-      >
-        {/* Glow Accent Circles */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+  const isLight = theme === "light";
 
-        <div className="relative z-10 max-w-4xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 backdrop-blur-md">
-            <ShieldCheck className="w-4 h-4 text-blue-400" />
-            <span>Enterprise Substation Asset Solutions & APM Architecture</span>
+  return (
+    <div className="space-y-10 max-w-7xl mx-auto pb-12">
+      {/* 1. Page Header (Quiet, Clean, Architectural) */}
+      <div className="space-y-3 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase text-slate-500 dark:text-slate-400">
+          <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span>Asset Performance Management (APM)</span>
+        </div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Substation Equipment Diagnostic Solutions
+            </h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+              Standardized engineering diagnostics mapping real-time electrical telemetry to predictive
+              failure models and verified OEM troubleshooting procedures.
+            </p>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight">
-            Next-Gen Power Grid Diagnostic &{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-              Maintenance Intelligence
-            </span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-3xl">
-            Bridging heavy electrical substation engineering with AI telemetry analytics.
-            GridGuard continuously calculates transformer and switchgear health indices,
-            simulates failure probabilities, and delivers instant, multimodal citations from
-            official OEM manuals (ABB, Siemens, Schneider Electric).
-          </p>
-
-          {/* Quick Metrics KPI Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-4">
-            <div
-              className={`p-3.5 rounded-2xl border text-center transition ${
-                theme === "dark"
-                  ? "bg-slate-900/60 border-slate-800"
-                  : "bg-white/80 border-slate-200 shadow-sm"
-              }`}
-            >
-              <div className="text-2xl font-black text-blue-400">99.9%</div>
-              <div className="text-[11px] text-slate-400 font-medium">Grid Uptime Target</div>
+          <div className="flex items-center gap-6 text-xs text-slate-600 dark:text-slate-400 shrink-0 font-medium">
+            <div>
+              <span className="block text-lg font-bold text-slate-900 dark:text-white">99.9%</span>
+              <span className="text-[11px] text-slate-500">Uptime Benchmark</span>
             </div>
-            <div
-              className={`p-3.5 rounded-2xl border text-center transition ${
-                theme === "dark"
-                  ? "bg-slate-900/60 border-slate-800"
-                  : "bg-white/80 border-slate-200 shadow-sm"
-              }`}
-            >
-              <div className="text-2xl font-black text-emerald-400">-45%</div>
-              <div className="text-[11px] text-slate-400 font-medium">MTTR (Repair Time)</div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
+            <div>
+              <span className="block text-lg font-bold text-slate-900 dark:text-white">-45%</span>
+              <span className="text-[11px] text-slate-500">Mean Time to Repair</span>
             </div>
-            <div
-              className={`p-3.5 rounded-2xl border text-center transition ${
-                theme === "dark"
-                  ? "bg-slate-900/60 border-slate-800"
-                  : "bg-white/80 border-slate-200 shadow-sm"
-              }`}
-            >
-              <div className="text-2xl font-black text-indigo-400">5 OEMs</div>
-              <div className="text-[11px] text-slate-400 font-medium">Curated Technical K-Base</div>
-            </div>
-            <div
-              className={`p-3.5 rounded-2xl border text-center transition ${
-                theme === "dark"
-                  ? "bg-slate-900/60 border-slate-800"
-                  : "bg-white/80 border-slate-200 shadow-sm"
-              }`}
-            >
-              <div className="text-2xl font-black text-cyan-400">IEC / IEEE</div>
-              <div className="text-[11px] text-slate-400 font-medium">Standards Compliant</div>
+            <div className="h-8 w-px bg-slate-200 dark:bg-slate-800" />
+            <div>
+              <span className="block text-lg font-bold text-slate-900 dark:text-white">5 OEMs</span>
+              <span className="text-[11px] text-slate-500">Manual Libraries</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 2. Categorized Solution Selector Tabs (Like ZDBYQ Sector Navigation) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      {/* 2. Clean Segmented Category Tabs (No neon rainbow badges) */}
+      <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 max-w-fit overflow-x-auto">
         {[
-          { id: "transmission", label: "High-Voltage Transmission (110kV – 500kV)", icon: <Zap className="w-4 h-4" /> },
-          { id: "distribution", label: "Medium-Voltage Distribution (11kV – 33kV)", icon: <Layers className="w-4 h-4" /> },
-          { id: "renewable", label: "Solar & Wind Substation (Renewables)", icon: <Sun className="w-4 h-4" /> },
-          { id: "industrial", label: "Critical Industrial & Rail Power", icon: <Factory className="w-4 h-4" /> },
-        ].map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => {
-              setSelectedCategory(cat.id as SolutionCategory);
-              const firstInCat = SOLUTIONS_DATA.find((s) => s.category === cat.id);
-              if (firstInCat) setActiveSolutionId(firstInCat.id);
-            }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap border shrink-0 ${
-              selectedCategory === cat.id
-                ? "bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/25"
-                : theme === "dark"
-                ? "bg-slate-900/70 border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800"
-                : "bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50"
-            }`}
-          >
-            {cat.icon}
-            <span>{cat.label}</span>
-          </button>
-        ))}
+          { id: "transmission", label: "High-Voltage Transmission (110kV–500kV)" },
+          { id: "distribution", label: "Medium-Voltage Distribution (11kV–33kV)" },
+          { id: "renewable", label: "Renewable & BESS Interconnections" },
+        ].map((tab) => {
+          const isActive = selectedCategory === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setSelectedCategory(tab.id as SolutionCategory);
+                const first = SOLUTIONS_DATA.find((s) => s.category === tab.id);
+                if (first) setActiveSolutionId(first.id);
+              }}
+              className={`px-4 py-2 rounded-lg text-xs font-medium transition whitespace-nowrap ${
+                isActive
+                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm font-semibold"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* 3. Main Solution Details Grid & Action Hub */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Solution Cards List (5 Cols) */}
-        <div className="lg:col-span-5 space-y-4">
-          <h3 className="text-xs font-bold tracking-wider uppercase text-slate-400 px-1">
-            Available Equipment Configurations
-          </h3>
+      {/* 3. Main Solution Details Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Left Column: Solution Cards (4 Cols) */}
+        <div className="lg:col-span-4 space-y-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 block px-1">
+            Configurations
+          </span>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {filteredSolutions.map((item) => {
               const isSelected = item.id === activeSolutionId;
               return (
                 <div
                   key={item.id}
                   onClick={() => setActiveSolutionId(item.id)}
-                  className={`p-5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
+                  className={`p-4 rounded-xl border text-left cursor-pointer transition ${
                     isSelected
-                      ? theme === "dark"
-                        ? "bg-[#0d162d] border-blue-500/60 shadow-lg shadow-blue-500/10"
-                        : "bg-blue-50/70 border-blue-300 shadow-md shadow-blue-500/5"
-                      : theme === "dark"
-                      ? "bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80"
-                      : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      ? "bg-white dark:bg-slate-800/90 border-blue-600 dark:border-blue-500 shadow-sm ring-1 ring-blue-600/20 dark:ring-blue-500/20"
+                      : "bg-white dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
                   }`}
                 >
-                  {isSelected && (
-                    <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-blue-500 rounded-l" />
-                  )}
-
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/20">
-                          {item.voltageRating.split("•")[0]}
-                        </span>
-                        <span className="text-[11px] font-medium text-slate-400">
-                          {item.oemPartners.join(" • ")}
-                        </span>
-                      </div>
-                      <h4 className="text-sm font-bold text-slate-100 dark:text-white">
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 block">
+                        {item.voltageRating}
+                      </span>
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
                         {item.title}
                       </h4>
-                      <p className="text-xs text-slate-400 line-clamp-2">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                         {item.coreChallenge}
                       </p>
                     </div>
-
                     <ChevronRight
                       className={`w-4 h-4 shrink-0 mt-1 transition ${
-                        isSelected ? "text-blue-400 translate-x-1" : "text-slate-500"
+                        isSelected
+                          ? "text-blue-600 dark:text-blue-400 translate-x-0.5"
+                          : "text-slate-400"
                       }`}
                     />
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs font-mono">
-                    <span className="text-emerald-400 font-bold">
-                      Health Index: {item.metrics.healthIndex}%
+                  <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Health: <strong className="text-slate-900 dark:text-white">{item.metrics.healthIndex}%</strong>
                     </span>
-                    <span className="text-amber-400">
-                      PoF Risk: {item.metrics.failureProbability}%
+                    <span className="text-slate-600 dark:text-slate-400">
+                      Failure Risk: <strong className="text-slate-900 dark:text-white">{item.metrics.failureProbability}%</strong>
                     </span>
                   </div>
                 </div>
@@ -409,111 +340,79 @@ export function SolutionsView({
           </div>
         </div>
 
-        {/* Right Column: Deep-Dive Solution Architecture & Live Actions (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          <div
-            className={`p-6 sm:p-7 rounded-3xl border shadow-xl transition-all ${
-              theme === "dark"
-                ? "bg-[#0b1120] border-slate-800"
-                : "bg-white border-slate-200 shadow-slate-200/50"
-            }`}
-          >
-            {/* Header of Selected Solution */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-slate-800">
+        {/* Right Column: Deep-Dive Solution Architecture (8 Cols) */}
+        <div className="lg:col-span-8 space-y-6">
+          <div className="p-6 sm:p-7 rounded-2xl border bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            {/* Header */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <span className="text-[11px] font-bold text-blue-400 uppercase tracking-wider">
-                  Technical Architecture Specification
+                <span className="text-xs font-mono text-blue-600 dark:text-blue-400 font-semibold block">
+                  {activeSolution.voltageRating}
                 </span>
-                <h3 className="text-xl font-black text-white">{activeSolution.title}</h3>
-                <p className="text-xs text-slate-400">{activeSolution.subtitle}</p>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-0.5">
+                  {activeSolution.title}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  OEM Partners: {activeSolution.oemPartners.join(" • ")}
+                </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() =>
-                    onOpenRag(
-                      `What are the mandatory troubleshooting steps for ${activeSolution.title} from the OEM manual?`
-                    )
-                  }
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Consult RAG Assistant</span>
-                </button>
-              </div>
+              <button
+                onClick={() =>
+                  onOpenRag(
+                    `What are the mandatory troubleshooting steps for ${activeSolution.title} in the official OEM manual?`
+                  )
+                }
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium shadow-sm transition"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Consult RAG Assistant</span>
+              </button>
             </div>
 
-            {/* Core Sections: Challenge vs. AI Diagnostic Action */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 my-5">
-              <div
-                className={`p-4 rounded-2xl border ${
-                  theme === "dark"
-                    ? "bg-rose-500/5 border-rose-500/20 text-rose-200"
-                    : "bg-rose-50 border-rose-200 text-rose-900"
-                }`}
-              >
-                <div className="flex items-center gap-2 text-rose-400 font-bold text-xs mb-1.5">
-                  <AlertTriangle className="w-4 h-4" />
-                  <span>Failure Mode & Engineering Risk</span>
-                </div>
-                <p className="text-xs leading-relaxed opacity-90">
+            {/* 2 Blocks: Challenge vs Diagnostic Action */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                <span className="font-semibold text-slate-900 dark:text-white block">
+                  Failure Mode & Operating Risk
+                </span>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   {activeSolution.coreChallenge}
                 </p>
               </div>
 
-              <div
-                className={`p-4 rounded-2xl border ${
-                  theme === "dark"
-                    ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-200"
-                    : "bg-emerald-50 border-emerald-200 text-emerald-900"
-                }`}
-              >
-                <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-1.5">
-                  <Activity className="w-4 h-4" />
-                  <span>GridGuard Diagnostic Protocol</span>
-                </div>
-                <p className="text-xs leading-relaxed opacity-90">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                <span className="font-semibold text-slate-900 dark:text-white block">
+                  GridGuard Telemetry Protocol
+                </span>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
                   {activeSolution.diagnosticAction}
                 </p>
               </div>
             </div>
 
-            {/* Prescriptive OEM Manual Card (Direct RAG Citation) */}
-            <div
-              className={`p-5 rounded-2xl border space-y-3 ${
-                theme === "dark"
-                  ? "bg-slate-900/80 border-slate-800"
-                  : "bg-slate-50 border-slate-200"
-              }`}
-            >
+            {/* Verified OEM Citation (Clean Document Style) */}
+            <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-                    <BookOpen className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h5 className="text-xs font-bold text-white">
-                      Verified OEM Maintenance Citation
-                    </h5>
-                    <span className="text-[11px] text-indigo-400 font-mono">
-                      {activeSolution.ragProcedure.citation}
-                    </span>
-                  </div>
+                  <BookOpen className="w-4 h-4 text-slate-700 dark:text-slate-300" />
+                  <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                    {activeSolution.ragProcedure.citation}
+                  </span>
                 </div>
-
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
                   Page {activeSolution.ragProcedure.page}
                 </span>
               </div>
 
-              <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/50 p-3 rounded-xl border border-slate-800/80 font-mono">
+              <p className="text-xs text-slate-700 dark:text-slate-300 font-mono leading-relaxed bg-white dark:bg-slate-950 p-3 rounded-lg border border-slate-200 dark:border-slate-800/80">
                 {activeSolution.ragProcedure.procedureText}
               </p>
 
-              <div className="flex items-center justify-between text-[11px] text-slate-400">
-                <span className="flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Indexed Table: {activeSolution.ragProcedure.tableSummary}</span>
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
+                <span className="flex items-center gap-1.5 text-[11px]">
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Table: {activeSolution.ragProcedure.tableSummary}</span>
                 </span>
                 <button
                   onClick={() =>
@@ -521,7 +420,7 @@ export function SolutionsView({
                       `Explain table on page ${activeSolution.ragProcedure.page} from ${activeSolution.ragProcedure.manualName}`
                     )
                   }
-                  className="text-blue-400 hover:text-blue-300 font-bold inline-flex items-center gap-1"
+                  className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 text-[11px] font-medium"
                 >
                   <span>Inspect Table</span>
                   <ArrowUpRight className="w-3 h-3" />
@@ -532,30 +431,22 @@ export function SolutionsView({
         </div>
       </div>
 
-      {/* 4. Interactive Live Diagnostic Sandbox (ZDBYQ Action Simulation) */}
-      <div
-        className={`p-6 sm:p-8 rounded-3xl border shadow-2xl transition ${
-          theme === "dark"
-            ? "bg-[#090f1d] border-slate-800"
-            : "bg-white border-slate-200 shadow-slate-200/60"
-        }`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-800">
+      {/* 4. Minimalist Telemetry Simulation Workbench */}
+      <div className="p-6 sm:p-7 rounded-2xl border bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-100 dark:border-slate-800">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider">
-              <SlidersHorizontal className="w-4 h-4" />
-              <span>Interactive Telemetry Simulation Workbench</span>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+              <Sliders className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Interactive Telemetry Simulator</span>
             </div>
-            <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
-              Live Substation Diagnostic & Fault Stress Simulator
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">
+              Substation Asset Stress Test & Diagnostic Evaluation
             </h3>
-            <p className="text-xs text-slate-400">
-              Adjust telemetry values to simulate severe high-voltage operational stress and observe
-              the live Failure Probability and Health Score reaction.
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Adjust sensory variables to observe the dynamic reaction of the Health Score and Failure Probability.
             </p>
           </div>
 
-          {/* Quick Preset Buttons */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
@@ -564,40 +455,36 @@ export function SolutionsView({
                 setSimBdv(42);
                 setSimLoad(95);
               }}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30 hover:bg-rose-500/25 transition"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition"
             >
-              Trigger Severe Fault
+              Simulate Critical Outage
             </button>
             <button
               onClick={() => {
-                setSimTemp(60);
+                setSimTemp(68);
                 setSimPressure(0.56);
-                setSimBdv(65);
-                setSimLoad(70);
+                setSimBdv(58);
+                setSimLoad(75);
               }}
-              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition"
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition inline-flex items-center gap-1"
             >
-              Reset Normal Baseline
+              <RotateCcw className="w-3 h-3" />
+              <span>Reset Baseline</span>
             </button>
           </div>
         </div>
 
-        {/* 4 Telemetry Sliders + Live Diagnostic Indicators */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-6">
-          {/* Sliders Area (8 Cols) */}
-          <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {/* 4 Sliders + Health Index Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          {/* Sliders Grid (8 Cols) */}
+          <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Slider 1: Temperature */}
-            <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                  <Thermometer className="w-4 h-4 text-rose-400" />
+                <span className="font-medium text-slate-700 dark:text-slate-300">
                   Top Oil / Winding Temp
                 </span>
-                <span
-                  className={`font-mono font-bold ${
-                    simTemp > 75 ? "text-rose-400" : "text-emerald-400"
-                  }`}
-                >
+                <span className="font-mono font-semibold text-slate-900 dark:text-white">
                   {simTemp} °C
                 </span>
               </div>
@@ -607,27 +494,22 @@ export function SolutionsView({
                 max="115"
                 value={simTemp}
                 onChange={(e) => setSimTemp(Number(e.target.value))}
-                className="w-full accent-blue-500 cursor-pointer"
+                className="w-full accent-blue-600 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                <span>40°C (Normal)</span>
+              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>40°C</span>
                 <span>75°C (Alarm)</span>
-                <span>115°C (Trip)</span>
+                <span>115°C</span>
               </div>
             </div>
 
             {/* Slider 2: SF6 Gas Pressure */}
-            <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                  <Gauge className="w-4 h-4 text-cyan-400" />
-                  SF6 Gas Density Pressure
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  SF6 Gas Pressure
                 </span>
-                <span
-                  className={`font-mono font-bold ${
-                    simPressure < 0.52 ? "text-rose-400" : "text-emerald-400"
-                  }`}
-                >
+                <span className="font-mono font-semibold text-slate-900 dark:text-white">
                   {simPressure.toFixed(2)} MPa
                 </span>
               </div>
@@ -638,27 +520,22 @@ export function SolutionsView({
                 step="0.01"
                 value={simPressure}
                 onChange={(e) => setSimPressure(Number(e.target.value))}
-                className="w-full accent-cyan-500 cursor-pointer"
+                className="w-full accent-blue-600 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
                 <span>0.48 MPa (Lockout)</span>
-                <span>0.55 MPa (Alarm)</span>
-                <span>0.60 MPa (Rated)</span>
+                <span>0.55 MPa</span>
+                <span>0.60 MPa</span>
               </div>
             </div>
 
             {/* Slider 3: BDV Dielectric */}
-            <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  Insulating Oil BDV Test
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  Dielectric BDV Breakdown
                 </span>
-                <span
-                  className={`font-mono font-bold ${
-                    simBdv < 50 ? "text-rose-400" : "text-emerald-400"
-                  }`}
-                >
+                <span className="font-mono font-semibold text-slate-900 dark:text-white">
                   {simBdv} kV
                 </span>
               </div>
@@ -668,27 +545,22 @@ export function SolutionsView({
                 max="80"
                 value={simBdv}
                 onChange={(e) => setSimBdv(Number(e.target.value))}
-                className="w-full accent-amber-500 cursor-pointer"
+                className="w-full accent-blue-600 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                <span>&lt;40 kV (Critical)</span>
+              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>30 kV</span>
                 <span>50 kV (IEC Minimum)</span>
-                <span>&gt;70 kV (Fresh Oil)</span>
+                <span>80 kV</span>
               </div>
             </div>
 
             {/* Slider 4: Load Ratio */}
-            <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                  <Activity className="w-4 h-4 text-indigo-400" />
+                <span className="font-medium text-slate-700 dark:text-slate-300">
                   Substation Load Ratio
                 </span>
-                <span
-                  className={`font-mono font-bold ${
-                    simLoad > 85 ? "text-amber-400" : "text-emerald-400"
-                  }`}
-                >
+                <span className="font-mono font-semibold text-slate-900 dark:text-white">
                   {simLoad} %
                 </span>
               </div>
@@ -698,64 +570,43 @@ export function SolutionsView({
                 max="125"
                 value={simLoad}
                 onChange={(e) => setSimLoad(Number(e.target.value))}
-                className="w-full accent-indigo-500 cursor-pointer"
+                className="w-full accent-blue-600 cursor-pointer"
               />
-              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                <span>50% (Eco)</span>
-                <span>80% (Nominal)</span>
-                <span>120% (Overload)</span>
+              <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                <span>50%</span>
+                <span>85% (Nominal)</span>
+                <span>120%</span>
               </div>
             </div>
           </div>
 
-          {/* Real-Time Result Gauge & Predictive Card (4 Cols) */}
-          <div className="lg:col-span-4 p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 flex flex-col justify-between space-y-4">
+          {/* Result Panel (4 Cols) */}
+          <div className="lg:col-span-4 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 space-y-4">
             <div>
-              <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                <span>Predicted Asset Health Index</span>
-                <span
-                  className={`font-bold px-2 py-0.5 rounded text-[10px] ${
-                    dynamicHealth > 75
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                      : dynamicHealth > 45
-                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                      : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                  }`}
-                >
-                  {dynamicHealth > 75 ? "Optimal" : dynamicHealth > 45 ? "Warning" : "Critical"}
-                </span>
-              </div>
-
-              {/* Huge Health Score Number */}
-              <div className="flex items-baseline gap-2">
-                <span
-                  className={`text-5xl font-black font-mono ${
-                    dynamicHealth > 75
-                      ? "text-emerald-400"
-                      : dynamicHealth > 45
-                      ? "text-amber-400"
-                      : "text-rose-500"
-                  }`}
-                >
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                Calculated Health Index
+              </span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-4xl font-bold font-mono text-slate-900 dark:text-white">
                   {dynamicHealth}
                 </span>
-                <span className="text-slate-500 font-mono text-sm">/ 100</span>
+                <span className="text-xs text-slate-400 font-mono">/ 100</span>
               </div>
 
-              {/* Failure Probability Bar */}
-              <div className="mt-4 space-y-1.5">
-                <div className="flex justify-between text-[11px] text-slate-400 font-mono">
-                  <span>Random Forest Failure Risk</span>
-                  <span className="font-bold text-rose-400">{dynamicRisk}%</span>
+              {/* Minimal Progress Bar */}
+              <div className="mt-3 space-y-1">
+                <div className="flex justify-between text-[11px] text-slate-500 font-mono">
+                  <span>Failure Probability</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{dynamicRisk}%</span>
                 </div>
-                <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                <div className="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-300 rounded-full ${
+                    className={`h-full rounded-full transition-all duration-200 ${
                       dynamicRisk > 60
                         ? "bg-rose-500"
                         : dynamicRisk > 30
                         ? "bg-amber-500"
-                        : "bg-emerald-500"
+                        : "bg-blue-600"
                     }`}
                     style={{ width: `${dynamicRisk}%` }}
                   />
@@ -763,32 +614,23 @@ export function SolutionsView({
               </div>
             </div>
 
-            {/* Prescriptive Trigger CTA */}
             {dynamicRisk > 30 ? (
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2">
-                <div className="flex items-center gap-1.5 font-bold">
-                  <Flame className="w-4 h-4 text-rose-400" />
-                  <span>Immediate Anomaly Detected</span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-slate-300">
-                  Telemetry parameters exceed IEEE C57 limits. Click below to consult the official
-                  OEM repair procedure.
-                </p>
+              <div className="pt-2">
                 <button
                   onClick={() =>
                     onOpenRag(
                       `High risk alert: Temperature is ${simTemp}°C, SF6 pressure is ${simPressure} MPa, BDV is ${simBdv} kV. What are the emergency actions in ${activeSolution.ragProcedure.manualName}?`
                     )
                   }
-                  className="w-full py-2 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition shadow-md shadow-rose-500/20"
+                  className="w-full py-2 px-3 rounded-lg bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium text-xs hover:bg-slate-800 dark:hover:bg-slate-100 transition shadow-sm"
                 >
-                  Open Emergency Manual Protocol
+                  Consult Emergency Protocol
                 </button>
               </div>
             ) : (
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>All parameters within safe operating thresholds.</span>
+              <div className="text-[11px] text-slate-500 flex items-center gap-1.5 pt-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>Operating within nominal parameters.</span>
               </div>
             )}
           </div>
