@@ -51,12 +51,24 @@ Thumbs.db
 # ChromaDB & Vector Store
 chroma_db/
 **/chroma_db/
+ai-service/data/chroma_db/
+ai-service/data/chroma_db_troubleshooting/
+ai-service/data/images/
 *.parquet
 data/manuals/*.pdf
 data/manuals/*.PDF
 data/*.pdf
 ai-service/data/manuals/*.pdf
-ai-service/data/chroma_db/
+ai-service/data/manuals/**/*.pdf
+ai-service/data/manuals/**/*.PDF
+
+# Node / Next.js
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+*.tsbuildinfo
+next-env.d.ts
 
 # Test & coverage artifacts
 .coverage
