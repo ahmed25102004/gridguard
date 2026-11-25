@@ -1,4 +1,3 @@
-import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,7 +32,7 @@ origins = [
     "http://localhost:3000",  # React / Next.js local dashboard
     "http://localhost:5173",  # Vite dev server
     "http://localhost:8080",
-    "*",                      # Permissive in dev to allow mobile emulator and IoT simulator connections
+    "*",  # Permissive in dev to allow mobile emulator and IoT simulator connections
 ]
 
 app.add_middleware(
