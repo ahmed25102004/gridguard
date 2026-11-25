@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { AssetTable } from "../../components/assets/AssetTable";
-import { SolutionsView } from "../../components/solutions/SolutionsView";
 import { useDashboard } from "../../components/layout/DashboardContext";
 import {
   Layers,
@@ -262,59 +261,46 @@ export default function AssetsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Dynamic View Header (Hidden for Solutions view since it has its own architectural header) */}
-      {activeTab !== "solutions" && (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-200 dark:border-slate-800">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-500 uppercase tracking-wider mb-1">
-              <Layers className="w-3.5 h-3.5" />
-              <span>GridGuard Substation Platform</span>
-            </div>
-            <h2 className={`text-2xl font-black tracking-tight ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
-              {activeTab === "inventory" && "Substation Equipment Explorer"}
-              {activeTab === "gis" && "Spatial Radar & PostGIS GIS Map"}
-              {activeTab === "scada" && "Live SCADA Telemetry Stream"}
-              {activeTab === "rag" && "Multimodal RAG Technical Assistant"}
-              {activeTab === "manuals" && "OEM Technical Manuals & K-Base"}
-              {activeTab === "audit" && "Substation Audit Trail & Dispatch"}
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Real-time PostGIS spatial registry, operational health telemetry, and substation maintenance scoping.
-            </p>
+      {/* Dynamic View Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-slate-800/80">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">
+            <Layers className="w-3.5 h-3.5" />
+            <span>GridGuard Substation Platform</span>
           </div>
-
-          {/* Global Action Buttons */}
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => alert("Exporting current 524 grid asset records to PostGIS GeoJSON...")}
-              className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl border shadow-sm transition cursor-pointer ${
-                theme === "dark" ? "bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              <Download className="w-3.5 h-3.5 text-slate-400" />
-              <span>Export GeoJSON</span>
-            </button>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#FF6E00] hover:bg-[#ef5816] rounded-xl shadow-sm transition cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>+ Register Asset</span>
-            </button>
-          </div>
+          <h2 className={`text-2xl font-black tracking-tight ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
+            {activeTab === "inventory" && "Substation Equipment Explorer"}
+            {activeTab === "gis" && "Spatial Radar & PostGIS GIS Map"}
+            {activeTab === "scada" && "Live SCADA Telemetry Stream"}
+            {activeTab === "rag" && "Multimodal RAG Technical Assistant"}
+            {activeTab === "manuals" && "OEM Technical Manuals & K-Base"}
+            {activeTab === "audit" && "Substation Audit Trail & Dispatch"}
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Real-time PostGIS spatial registry, operational health telemetry, and substation maintenance scoping.
+          </p>
         </div>
-      )}
 
-      {/* VIEW 0: Solutions Architecture (ZDBYQ Style APM Solutions) */}
-      {activeTab === "solutions" && (
-        <SolutionsView
-          theme={theme}
-          onOpenRag={(prefilledQuery) => {
-            setActiveTab("rag");
-            handleRunRag(prefilledQuery);
-          }}
-        />
-      )}
+        {/* Global Action Buttons */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => alert("Exporting current 524 grid asset records to PostGIS GeoJSON...")}
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-xl border shadow-sm transition cursor-pointer ${
+              theme === "dark" ? "bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800" : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+            }`}
+          >
+            <Download className="w-3.5 h-3.5 text-slate-400" />
+            <span>Export GeoJSON</span>
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-xl shadow-lg shadow-blue-500/25 transition cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>+ Register Asset</span>
+          </button>
+        </div>
+      </div>
 
       {/* VIEW 1: Asset Inventory (Default Main View) */}
       {activeTab === "inventory" && (

@@ -40,14 +40,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const navItems: { id: NavTab; label: string; icon: React.ReactNode; group: "operations" | "intelligence"; badge?: string; badgeColor?: string }[] = [
     {
-      id: "solutions",
-      label: "Solutions Architecture",
-      icon: <ShieldCheck className="w-4 h-4" />,
-      group: "operations",
-      badge: "Smart APM",
-      badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-    },
-    {
       id: "inventory",
       label: "Asset Inventory",
       icon: <Layers className="w-4 h-4" />,
@@ -98,34 +90,34 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className={`min-h-screen flex w-full transition-colors duration-200 ${theme === "dark" ? "bg-[#090D16] text-slate-100" : "bg-[#F9F9F9] text-[#212121]"}`}>
+    <div className={`min-h-screen flex w-full transition-colors duration-200 ${theme === "dark" ? "bg-[#070b14] text-slate-100" : "bg-slate-50 text-slate-900"}`}>
       {/* Collapsible Left Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out border-r ${
           sidebarOpen ? "w-72 translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-0 lg:border-transparent lg:overflow-hidden"
         } ${
           theme === "dark"
-            ? "bg-[#090d16] border-slate-800"
-            : "bg-white border-[#EAEAEA]"
+            ? "bg-[#0b101d]/95 border-slate-800/80 backdrop-blur-xl"
+            : "bg-white/95 border-slate-200 backdrop-blur-xl shadow-lg"
         }`}
       >
         <div className="p-4 space-y-5 overflow-y-auto w-72">
           {/* Brand Header */}
           <div className="flex items-center justify-between px-2 pt-1">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#FF6E00] flex items-center justify-center text-white shadow-sm shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 shrink-0">
                 <Zap className="w-5 h-5 fill-white text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className={`font-bold tracking-tight text-base ${theme === "dark" ? "text-white" : "text-[#212121]"}`}>
+                  <span className={`font-bold tracking-tight text-base ${theme === "dark" ? "text-white" : "text-slate-900"}`}>
                     GridGuard
                   </span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#FFF1E9] dark:bg-[#FF6E00]/15 text-[#FF6E00] border border-[#FFD8C2] dark:border-[#FF6E00]/30">
-                    APM
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    AI
                   </span>
                 </div>
-                <p className="text-[11px] text-[#767676] dark:text-slate-400 font-normal">
+                <p className="text-[11px] text-slate-400 font-medium">
                   Substation Asset Intelligence
                 </p>
               </div>
@@ -350,7 +342,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             {/* Quick Tab Switcher Button */}
             <button
               onClick={() => setActiveTab(activeTab === "rag" ? "inventory" : "rag")}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6E00] hover:bg-[#ef5816] text-white text-xs font-bold shadow-sm transition"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>{activeTab === "rag" ? "View Inventory" : "RAG Assistant"}</span>

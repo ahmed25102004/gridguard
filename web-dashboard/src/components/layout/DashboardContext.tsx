@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 
-export type NavTab = "solutions" | "inventory" | "gis" | "scada" | "rag" | "manuals" | "audit";
+export type NavTab = "inventory" | "gis" | "scada" | "rag" | "manuals" | "audit";
 
 interface DashboardContextType {
   sidebarOpen: boolean;
@@ -21,7 +21,7 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 export function DashboardProvider({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [activeTab, setActiveTab] = useState<NavTab>("solutions");
+  const [activeTab, setActiveTab] = useState<NavTab>("inventory");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Sync theme with document element and local storage
