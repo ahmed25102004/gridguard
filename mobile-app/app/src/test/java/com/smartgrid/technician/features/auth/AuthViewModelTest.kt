@@ -39,7 +39,7 @@ class AuthViewModelTest {
         fakeApiService = FakeApiService()
         fakeSecureStorage = FakeSecureStorage()
         fakeConnectivityObserver = FakeConnectivityObserver(ConnectivityObserver.Status.AVAILABLE)
-        authRepository = AuthRepositoryImpl(fakeApiService, fakeSecureStorage, fakeConnectivityObserver)
+        authRepository = AuthRepositoryImpl(fakeApiService, fakeSecureStorage, fakeConnectivityObserver, testDispatcher)
     }
 
     @After
@@ -52,7 +52,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `validateInputs flags empty email as error`() = runTest {
+    fun `validateInputs flags empty email as error`() = runTest(testDispatcher) {
         viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -66,7 +66,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `validateInputs flags invalid email format as error`() = runTest {
+    fun `validateInputs flags invalid email format as error`() = runTest(testDispatcher) {
         viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -80,7 +80,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `validateInputs flags short password as error`() = runTest {
+    fun `validateInputs flags short password as error`() = runTest(testDispatcher) {
         viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -94,7 +94,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `validateInputs accepts valid email and password`() = runTest {
+    fun `validateInputs accepts valid email and password`() = runTest(testDispatcher) {
         viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -109,7 +109,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `successful login updates state to Authenticated`() = runTest {
+    fun `successful login updates state to Authenticated`() = runTest(testDispatcher) {
         val token = TestJwtHelper.createToken(subject = "tech_1", email = "tech@smartgrid.com")
         fakeApiService.loginResult = Result.success(
             LoginResponse(
@@ -138,7 +138,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `rejected credentials sets INVALID_CREDENTIALS error`() = runTest {
+    fun `rejected credentials sets INVALID_CREDENTIALS error`() = runTest(testDispatcher) {
         fakeApiService.loginResult = Result.failure(Exception("401 Unauthorized"))
 
         viewModel = createViewModel()
@@ -158,7 +158,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `login when offline immediately sets NETWORK_UNAVAILABLE error without API call`() = runTest {
+    fun `login when offline immediately sets NETWORK_UNAVAILABLE error without API call`() = runTest(testDispatcher) {
         fakeConnectivityObserver.setStatus(ConnectivityObserver.Status.UNAVAILABLE)
 
         viewModel = createViewModel()
@@ -177,7 +177,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `server 500 failure sets SERVER_ERROR state`() = runTest {
+    fun `server 500 failure sets SERVER_ERROR state`() = runTest(testDispatcher) {
         fakeApiService.loginResult = Result.failure(Exception("500 Internal Server Error"))
 
         viewModel = createViewModel()
@@ -196,7 +196,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `cold start session restoration with valid token transitions to Authenticated`() = runTest {
+    fun `cold start session restoration with valid token transitions to Authenticated`() = runTest(testDispatcher) {
         val validToken = TestJwtHelper.createToken(subject = "tech_persisted", email = "persisted@smartgrid.com")
         fakeSecureStorage.saveAccessToken(validToken)
         fakeSecureStorage.saveUserData("tech_persisted", "persisted@smartgrid.com", "Persisted Tech", "lead_technician")
@@ -212,7 +212,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `cold start session restoration with expired token transitions to Unauthenticated`() = runTest {
+    fun `cold start session restoration with expired token transitions to Unauthenticated`() = runTest(testDispatcher) {
         val expiredToken = TestJwtHelper.createExpiredToken(subject = "tech_expired")
         fakeSecureStorage.saveAccessToken(expiredToken)
         fakeSecureStorage.saveUserData("tech_expired", "expired@smartgrid.com", "Expired Tech", "technician")
@@ -227,7 +227,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `cold start without existing session transitions to Unauthenticated`() = runTest {
+    fun `cold start without existing session transitions to Unauthenticated`() = runTest(testDispatcher) {
         viewModel = createViewModel()
         advanceUntilIdle()
 
@@ -237,7 +237,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `logout resets state to Unauthenticated and clears fields`() = runTest {
+    fun `logout resets state to Unauthenticated and clears fields`() = runTest(testDispatcher) {
         val token = TestJwtHelper.createToken()
         fakeSecureStorage.saveAccessToken(token)
 
@@ -255,7 +255,7 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `password visibility toggles between true and false`() = runTest {
+    fun `password visibility toggles between true and false`() = runTest(testDispatcher) {
         viewModel = createViewModel()
         advanceUntilIdle()
 

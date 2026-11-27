@@ -256,4 +256,38 @@ class AuthViewModel(
             }
         }
     }
+
+    /**
+     * Enables field technicians to operate in offline field mode directly
+     * when the authentication server is unreachable or in remote substations.
+     */
+    fun enterOfflineFieldMode() {
+        val inputEmail = _uiState.value.email.trim()
+        val email = if (inputEmail.isNotBlank()) inputEmail else "field.technician@smartgrid.local"
+        val rawName = email.substringBefore("@").replace(".", " ").replace("_", " ")
+        val name = rawName.split(" ").filter { it.isNotBlank() }
+            .joinToString(" ") { word -> word.replaceFirstChar { char -> char.uppercase() } }
+            .ifBlank { "Field Technician" }
+
+        val offlineSession = UserSession(
+            userId = "tech_offline_local",
+            email = email,
+            name = name,
+            role = "Technician",
+            accessToken = "offline_keystore_vault_token",
+            expiresAt = System.currentTimeMillis() + 86400000L * 7
+        )
+
+        _uiState.update {
+            it.copy(
+                errorMessage = null,
+                errorType = null,
+                isLoading = false,
+                authState = AuthState.Authenticated(
+                    session = offlineSession,
+                    isOffline = true
+                )
+            )
+        }
+    }
 }

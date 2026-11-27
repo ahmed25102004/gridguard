@@ -1,9 +1,11 @@
 package com.smartgrid.technician.core.network
 
+import com.smartgrid.technician.core.network.models.AssetDto
 import com.smartgrid.technician.core.network.models.LoginRequest
 import com.smartgrid.technician.core.network.models.LoginResponse
 import com.smartgrid.technician.core.network.models.RefreshTokenRequest
 import com.smartgrid.technician.core.network.models.UserDto
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
@@ -13,6 +15,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
+import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
 /**
@@ -32,6 +36,17 @@ interface ApiService {
 
     @GET(ApiConfig.ENDPOINT_PROFILE)
     suspend fun getProfile(): retrofit2.Response<UserDto>
+
+    @GET(ApiConfig.ENDPOINT_ASSETS)
+    suspend fun getAssets(
+        @Query("category") category: String? = null,
+        @Query("search") search: String? = null
+    ): retrofit2.Response<List<AssetDto>>
+
+    @GET("${ApiConfig.ENDPOINT_ASSETS}/{id}")
+    suspend fun getAssetById(
+        @Path("id") id: String
+    ): retrofit2.Response<AssetDto>
 }
 
 /**
@@ -65,6 +80,33 @@ class AuthInterceptor(
 }
 
 /**
+ * OkHttp interceptor that dynamically applies runtime base URL overrides.
+ */
+class DynamicBaseUrlInterceptor : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        var request = chain.request()
+        val custom = ApiConfig.customBaseUrl?.trim()
+        if (!custom.isNullOrBlank()) {
+            val normalizedUrl = if (custom.endsWith("/")) custom else "$custom/"
+            val customUrl = try {
+                normalizedUrl.toHttpUrlOrNull()
+            } catch (_: Exception) {
+                null
+            }
+            if (customUrl != null) {
+                val newUrl = request.url.newBuilder()
+                    .scheme(customUrl.scheme)
+                    .host(customUrl.host)
+                    .port(customUrl.port)
+                    .build()
+                request = request.newBuilder().url(newUrl).build()
+            }
+        }
+        return chain.proceed(request)
+    }
+}
+
+/**
  * Factory and client provider for Retrofit and OkHttp.
  */
 object ApiClient {
@@ -86,6 +128,7 @@ object ApiClient {
             .connectTimeout(ApiConfig.TIMEOUT_CONNECT_SECONDS, TimeUnit.SECONDS)
             .readTimeout(ApiConfig.TIMEOUT_READ_SECONDS, TimeUnit.SECONDS)
             .writeTimeout(ApiConfig.TIMEOUT_WRITE_SECONDS, TimeUnit.SECONDS)
+            .addInterceptor(DynamicBaseUrlInterceptor())
             .addInterceptor(AuthInterceptor(tokenProvider))
             .addInterceptor(loggingInterceptor)
             .retryOnConnectionFailure(true)
