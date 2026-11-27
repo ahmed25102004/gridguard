@@ -25,38 +25,48 @@ def _key(kind: str, value: str) -> str:
 
 def is_login_blocked(email: str, client_ip: str) -> bool:
     """Check whether the account or IP has reached the attempt limit."""
-    email_key = _key("email", email.strip().lower())
-    ip_key = _key("ip", client_ip)
+    try:
+        email_key = _key("email", email.strip().lower())
+        ip_key = _key("ip", client_ip)
 
-    email_count, ip_count = redis_client.mget(email_key, ip_key)
+        email_count, ip_count = redis_client.mget(email_key, ip_key)
 
-    return (
-        int(email_count or 0) >= MAX_FAILED_ATTEMPTS
-        or int(ip_count or 0) >= MAX_FAILED_ATTEMPTS
-    )
+        return (
+            int(email_count or 0) >= MAX_FAILED_ATTEMPTS
+            or int(ip_count or 0) >= MAX_FAILED_ATTEMPTS
+        )
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        return False
 
 
 def record_failed_login(email: str, client_ip: str) -> None:
     """Atomically increment failure counters and set their expiry."""
-    script = """
-    for i, key in ipairs(KEYS) do
-        local count = redis.call('INCR', key)
-        if count == 1 then
-            redis.call('EXPIRE', key, ARGV[1])
+    try:
+        script = """
+        for i, key in ipairs(KEYS) do
+            local count = redis.call('INCR', key)
+            if count == 1 then
+                redis.call('EXPIRE', key, ARGV[1])
+            end
         end
-    end
-    return 1
-    """
+        return 1
+        """
 
-    redis_client.eval(
-        script,
-        2,
-        _key("email", email.strip().lower()),
-        _key("ip", client_ip),
-        LOCKOUT_WINDOW_SECONDS,
-    )
+        redis_client.eval(
+            script,
+            2,
+            _key("email", email.strip().lower()),
+            _key("ip", client_ip),
+            LOCKOUT_WINDOW_SECONDS,
+        )
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        pass
 
 
 def clear_account_login_failures(email: str) -> None:
     """Clear the account counter after successful authentication."""
-    redis_client.delete(_key("email", email.strip().lower()))
+    try:
+        redis_client.delete(_key("email", email.strip().lower()))
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        pass
+

@@ -43,4 +43,8 @@ def blacklist_token(token: str, expires_at: int) -> None:
 
 def is_token_blacklisted(token: str) -> bool:
     """Check whether a JWT has been revoked."""
-    return bool(redis_client.exists(_get_blacklist_key(token)))
+    try:
+        return bool(redis_client.exists(_get_blacklist_key(token)))
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        return False
+

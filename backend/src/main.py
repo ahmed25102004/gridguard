@@ -12,11 +12,21 @@ from .routes.work_orders import router as work_orders_router
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
-    Ensures database tables are initialized upon startup and handles graceful shutdown.
+    Ensures database tables are initialized upon startup, seeds baseline roles, and handles graceful shutdown.
     """
     try:
-        # Create all defined tables in PostgreSQL if they don't already exist
+        # Create all defined tables in PostgreSQL/SQLite if they don't already exist
         Base.metadata.create_all(bind=engine)
+
+        # Automatically seed baseline roles if not present
+        from .models.role import Role
+        from .database import SessionLocal
+        with SessionLocal() as db:
+            existing_roles = {r.name for r in db.query(Role).all()}
+            for role_name in ["Admin", "Engineer", "Technician"]:
+                if role_name not in existing_roles:
+                    db.add(Role(name=role_name, description=f"Default {role_name} role"))
+            db.commit()
     except Exception:
         # Fallback for offline testing or environments where engine is overridden
         pass
