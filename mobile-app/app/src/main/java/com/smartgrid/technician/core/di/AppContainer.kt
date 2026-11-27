@@ -10,6 +10,8 @@ import com.smartgrid.technician.core.network.ConnectivityObserver
 import com.smartgrid.technician.core.network.NetworkConnectivityObserver
 import com.smartgrid.technician.core.security.KeystoreSecureStorage
 import com.smartgrid.technician.core.security.SecureStorage
+import com.smartgrid.technician.features.assets.data.AssetRepository
+import com.smartgrid.technician.features.assets.data.AssetRepositoryImpl
 import com.smartgrid.technician.features.auth.AuthRepository
 import com.smartgrid.technician.features.auth.AuthRepositoryImpl
 
@@ -22,6 +24,7 @@ interface AppContainer {
     val connectivityObserver: ConnectivityObserver
     val apiService: ApiService
     val authRepository: AuthRepository
+    val assetRepository: AssetRepository
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
@@ -56,6 +59,14 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
         AuthRepositoryImpl(
             apiService = apiService,
             secureStorage = secureStorage,
+            connectivityObserver = connectivityObserver
+        )
+    }
+
+    override val assetRepository: AssetRepository by lazy {
+        AssetRepositoryImpl(
+            apiService = apiService,
+            localDb = localDb,
             connectivityObserver = connectivityObserver
         )
     }

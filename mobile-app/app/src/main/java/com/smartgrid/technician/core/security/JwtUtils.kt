@@ -1,13 +1,15 @@
 package com.smartgrid.technician.core.security
 
-import android.util.Base64
-import org.json.JSONObject
+import com.google.gson.Gson
+import com.google.gson.JsonObject
 import java.nio.charset.StandardCharsets
 
 /**
- * Utility for parsing and inspecting JWT tokens securely without third-party dependencies.
+ * Utility for parsing and inspecting JWT tokens securely.
  */
 object JwtUtils {
+
+    private val gson = Gson()
 
     /**
      * Extracts expiration timestamp (in milliseconds) from a JWT access token.
@@ -16,8 +18,11 @@ object JwtUtils {
     fun getExpirationTimestamp(token: String): Long? {
         val payloadJson = getPayloadJsonObject(token) ?: return null
         return if (payloadJson.has("exp")) {
-            val expInSeconds = payloadJson.optLong("exp")
-            expInSeconds * 1000L
+            val expElement = payloadJson.get("exp")
+            if (expElement != null && !expElement.isJsonNull) {
+                val expInSeconds = expElement.asLong
+                expInSeconds * 1000L
+            } else null
         } else {
             null
         }
@@ -39,17 +44,25 @@ object JwtUtils {
      */
     fun getClaim(token: String, claimName: String): String? {
         val payloadJson = getPayloadJsonObject(token) ?: return null
-        return if (payloadJson.has(claimName)) payloadJson.optString(claimName) else null
+        if (!payloadJson.has(claimName)) return null
+        val element = payloadJson.get(claimName)
+        return if (element != null && !element.isJsonNull) {
+            element.asString
+        } else null
     }
 
-    private fun getPayloadJsonObject(token: String): JSONObject? {
+    private fun getPayloadJsonObject(token: String): JsonObject? {
         return try {
             val parts = token.split(".")
             if (parts.size < 2) return null
             val payloadBase64 = parts[1]
-            val decodedBytes = Base64.decode(payloadBase64, Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
+            val decodedBytes = try {
+                java.util.Base64.getUrlDecoder().decode(payloadBase64)
+            } catch (_: Exception) {
+                android.util.Base64.decode(payloadBase64, android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING or android.util.Base64.NO_WRAP)
+            }
             val jsonString = String(decodedBytes, StandardCharsets.UTF_8)
-            JSONObject(jsonString)
+            gson.fromJson(jsonString, JsonObject::class.java)
         } catch (_: Exception) {
             null
         }

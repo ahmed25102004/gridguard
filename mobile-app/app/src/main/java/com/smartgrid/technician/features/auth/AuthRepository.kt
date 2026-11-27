@@ -6,6 +6,7 @@ import com.smartgrid.technician.core.network.NetworkException
 import com.smartgrid.technician.core.network.models.LoginRequest
 import com.smartgrid.technician.core.security.JwtUtils
 import com.smartgrid.technician.core.security.SecureStorage
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -21,12 +22,13 @@ interface AuthRepository {
 class AuthRepositoryImpl(
     private val apiService: ApiService,
     private val secureStorage: SecureStorage,
-    private val connectivityObserver: ConnectivityObserver
+    private val connectivityObserver: ConnectivityObserver,
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AuthRepository {
 
     private var currentSession: UserSession? = null
 
-    override suspend fun login(email: String, password: String): Result<UserSession> = withContext(Dispatchers.IO) {
+    override suspend fun login(email: String, password: String): Result<UserSession> = withContext(ioDispatcher) {
         if (!connectivityObserver.isConnected()) {
             return@withContext Result.failure(
                 NetworkException.NoConnectivityException("No internet connection. Initial login requires network connectivity.")
@@ -99,7 +101,7 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun restoreSession(): Result<UserSession?> = withContext(Dispatchers.IO) {
+    override suspend fun restoreSession(): Result<UserSession?> = withContext(ioDispatcher) {
         val token = secureStorage.getAccessToken()
         if (token.isNullOrBlank()) {
             return@withContext Result.success(null)
@@ -132,7 +134,7 @@ class AuthRepositoryImpl(
         Result.success(session)
     }
 
-    override suspend fun logout(): Result<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun logout(): Result<Unit> = withContext(ioDispatcher) {
         secureStorage.clearSession()
         currentSession = null
         Result.success(Unit)
