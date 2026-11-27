@@ -239,18 +239,40 @@ def _authenticate_and_create_tokens(
     response_model=TokenResponse,
     summary="Authenticate user and issue JWT tokens",
 )
-def login_user(
-    payload: LoginRequest,
+async def login_user(
     request: Request,
     db: Session = Depends(get_db),
 ) -> TokenResponse:
-    """Authenticate a user with rate limiting via standard JSON payload."""
+    """Authenticate a user with rate limiting via JSON or OAuth2 form data."""
     client_ip = (
         request.client.host
         if request.client is not None
         else "unknown"
     )
-    return _authenticate_and_create_tokens(payload.email, payload.password, client_ip, db)
+
+    email: Optional[str] = None
+    password: Optional[str] = None
+
+    content_type = request.headers.get("content-type", "")
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        form = await request.form()
+        email = str(form.get("username") or form.get("email") or "")
+        password = str(form.get("password") or "")
+    else:
+        try:
+            body = await request.json()
+            email = str(body.get("email") or body.get("username") or "")
+            password = str(body.get("password") or "")
+        except Exception:
+            pass
+
+    if not email or not password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Missing credentials: email (or username) and password are required.",
+        )
+
+    return _authenticate_and_create_tokens(email, password, client_ip, db)
 
 
 @router.post(
@@ -270,6 +292,7 @@ def login_for_swagger(
         else "unknown"
     )
     return _authenticate_and_create_tokens(form_data.username, form_data.password, client_ip, db)
+
 
 
 
