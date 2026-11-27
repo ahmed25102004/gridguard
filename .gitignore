@@ -63,15 +63,19 @@ ai-service/data/chroma_db/
 htmlcov/
 .pytest_cache/
 
-# Node / Next.js
+# Node.js & Next.js
 node_modules/
 .next/
+out/
+dist/
 *.tsbuildinfo
 web-dashboard/node_modules/
 web-dashboard/.next/
 web-dashboard/next-env.d.ts
 
-# Large datasets
+# Local Vector DB & AI Service Data
+chroma_db/
+ai-service/data/
 ai-service/data/raw/*.csv
 data/raw/*.csv
 
