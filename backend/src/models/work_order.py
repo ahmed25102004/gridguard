@@ -16,6 +16,7 @@ from ..database import Base
 if TYPE_CHECKING:
     from .asset import Asset
     from .user import User
+    from .substation import Substation
 
 
 class WorkOrderPriority(str, Enum):
@@ -27,54 +28,90 @@ class WorkOrderPriority(str, Enum):
 
 class WorkOrderStatus(str, Enum):
     PENDING = "Pending"
+    ASSIGNED = "Assigned"
     IN_PROGRESS = "In Progress"
     COMPLETED = "Completed"
+    VERIFIED = "Verified"
     CANCELLED = "Cancelled"
 
 
 class WorkOrder(Base):
     """
-    Represents an operational maintenance or repair work order dispatched for a grid asset.
+    Represents an electrical substation maintenance or outage work order.
+    Enforces atomic state transitions, optimistic locking, outage categorization,
+    asset linkage, and mobile technician dispatch metadata.
     """
 
     __tablename__ = "work_orders"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    work_order_number: Mapped[str] = mapped_column(
-        String(50), unique=True, index=True, nullable=False
+    work_order_number: Mapped[Optional[str]] = mapped_column(
+        String(50), unique=True, index=True, nullable=True
     )
-    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    title: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    priority: Mapped[str] = mapped_column(
-        String(50), nullable=False, default=WorkOrderPriority.MEDIUM.value
+
+    # Substation & Equipment reference
+    substation_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("substations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
-    status: Mapped[str] = mapped_column(
-        String(50), nullable=False, default=WorkOrderStatus.PENDING.value
+    equipment_id: Mapped[Optional[str]] = mapped_column(
+        String(100), nullable=True, index=True
     )
 
     # Asset linkage
-    asset_id: Mapped[int] = mapped_column(
+    asset_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("assets.id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
         index=True,
     )
 
-    # Assigned technician linkage
+    # State Machine: Pending -> Assigned -> In Progress -> Completed -> Verified
+    status: Mapped[str] = mapped_column(
+        String(50), default="Pending", nullable=False, index=True
+    )
+    priority: Mapped[str] = mapped_column(
+        String(20), default="Medium", nullable=False
+    )
+
+    # Outage cause tagging & customer tracking
+    outage_cause: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True, index=True
+    )
+    affected_customers_count: Mapped[int] = mapped_column(
+        Integer, default=0, nullable=False
+    )
+
+    # Assignment & Ownership
     assigned_to_id: Mapped[Optional[int]] = mapped_column(
         Integer,
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
     )
+    created_by_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
 
+    # Optimistic locking column for atomic transactional safety
+    version_id: Mapped[int] = mapped_column(
+        Integer, default=1, nullable=False
+    )
+
+    # Timestamps & Schedules
     scheduled_date: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     completed_date: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
@@ -84,15 +121,40 @@ class WorkOrder(Base):
         onupdate=func.now(),
         nullable=False,
     )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    verified_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     # Relationships
-    asset: Mapped["Asset"] = relationship(
+    asset: Mapped[Optional["Asset"]] = relationship(
         "Asset",
         back_populates="work_orders",
+        lazy="selectin",
     )
     assigned_to: Mapped[Optional["User"]] = relationship(
         "User",
+        foreign_keys=[assigned_to_id],
+        lazy="selectin",
+    )
+    created_by: Mapped["User"] = relationship(
+        "User",
+        foreign_keys=[created_by_id],
+        lazy="selectin",
+    )
+    substation: Mapped[Optional["Substation"]] = relationship(
+        "Substation",
+        lazy="selectin",
     )
 
+    __mapper_args__ = {
+        "version_id_col": version_id
+    }
+
     def __repr__(self) -> str:
-        return f"<WorkOrder(id={self.id}, number='{self.work_order_number}', status='{self.status}')>"
+        return (
+            f"<WorkOrder(id={self.id}, title='{self.title}', status='{self.status}', "
+            f"priority='{self.priority}', assigned_to={self.assigned_to_id}, version={self.version_id})>"
+        )

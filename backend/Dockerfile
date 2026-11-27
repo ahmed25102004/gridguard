@@ -1,4 +1,3 @@
-
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -8,6 +7,7 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends libzstd1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

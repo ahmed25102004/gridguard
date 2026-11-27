@@ -24,15 +24,18 @@ def _key(kind: str, value: str) -> str:
 
 def is_login_blocked(email: str, client_ip: str) -> bool:
     """Check whether the account or IP has reached the attempt limit."""
-    email_key = _key("email", email.strip().lower())
-    ip_key = _key("ip", client_ip)
+    try:
+        email_key = _key("email", email.strip().lower())
+        ip_key = _key("ip", client_ip)
 
-    email_count, ip_count = redis_client.mget(email_key, ip_key)
+        email_count, ip_count = redis_client.mget(email_key, ip_key)
 
-    return (
-        int(email_count or 0) >= MAX_FAILED_ATTEMPTS
-        or int(ip_count or 0) >= MAX_FAILED_ATTEMPTS
-    )
+        return (
+            int(email_count or 0) >= MAX_FAILED_ATTEMPTS
+            or int(ip_count or 0) >= MAX_FAILED_ATTEMPTS
+        )
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        return False
 
 
 def record_failed_login(email: str, client_ip: str) -> None:
@@ -48,22 +51,28 @@ def record_failed_login(email: str, client_ip: str) -> None:
     """
 
     try:
-        redis_client.eval(
-            script,
-            2,
-            _key("email", email.strip().lower()),
-            _key("ip", client_ip),
-            LOCKOUT_WINDOW_SECONDS,
-        )
-    except redis.exceptions.ResponseError:
-        # Fallback to pipeline when Lua scripting is unsupported (e.g. fakeredis without lupa)
-        pipe = redis_client.pipeline()
-        for key in (_key("email", email.strip().lower()), _key("ip", client_ip)):
-            pipe.incr(key)
-            pipe.expire(key, LOCKOUT_WINDOW_SECONDS)
-        pipe.execute()
+        try:
+            redis_client.eval(
+                script,
+                2,
+                _key("email", email.strip().lower()),
+                _key("ip", client_ip),
+                LOCKOUT_WINDOW_SECONDS,
+            )
+        except redis.exceptions.ResponseError:
+            # Fallback to pipeline when Lua scripting is unsupported (e.g. fakeredis without lupa)
+            pipe = redis_client.pipeline()
+            for key in (_key("email", email.strip().lower()), _key("ip", client_ip)):
+                pipe.incr(key)
+                pipe.expire(key, LOCKOUT_WINDOW_SECONDS)
+            pipe.execute()
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        pass
 
 
 def clear_account_login_failures(email: str) -> None:
     """Clear the account counter after successful authentication."""
-    redis_client.delete(_key("email", email.strip().lower()))
+    try:
+        redis_client.delete(_key("email", email.strip().lower()))
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+        pass
