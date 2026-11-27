@@ -50,7 +50,7 @@ DUMMY_PASSWORD_HASH = (
     "$2b$12$xQPi/stgq1nvQ3pLJfp8eO6of7FAwkQvWHeyb3Qi2EZuu8WCRDaCC"
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 def hash_password(password: str) -> str:

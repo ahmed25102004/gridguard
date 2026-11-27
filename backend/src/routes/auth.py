@@ -2,6 +2,7 @@ from typing import List, Optional
 
 import redis
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy.orm import Session
 
@@ -155,25 +156,15 @@ def register_user(
     )
 
 
-@router.post(
-    "/login",
-    response_model=TokenResponse,
-    summary="Authenticate user and issue JWT tokens",
-)
-def login_user(
-    payload: LoginRequest,
-    request: Request,
-    db: Session = Depends(get_db),
+def _authenticate_and_create_tokens(
+    email: str,
+    password: str,
+    client_ip: str,
+    db: Session,
 ) -> TokenResponse:
-    """Authenticate a user with rate limiting."""
-    client_ip = (
-        request.client.host
-        if request.client is not None
-        else "unknown"
-    )
-
+    """Core authentication logic issuing JWT access and refresh tokens."""
     try:
-        if is_login_blocked(payload.email, client_ip):
+        if is_login_blocked(email, client_ip):
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many failed login attempts. Try again later.",
@@ -186,10 +177,9 @@ def login_user(
 
     user = (
         db.query(User)
-        .filter(User.email == payload.email)
+        .filter(User.email == email)
         .first()
     )
-
 
     # Use the same public error for unknown users and incorrect passwords.
     password_hash = (
@@ -198,11 +188,11 @@ def login_user(
         else DUMMY_PASSWORD_HASH
     )
 
-    password_valid = verify_password(payload.password, password_hash)
+    password_valid = verify_password(password, password_hash)
 
     if user is None or not password_valid:
         try:
-            record_failed_login(payload.email, client_ip)
+            record_failed_login(email, client_ip)
         except redis.exceptions.RedisError:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -215,7 +205,6 @@ def login_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -223,7 +212,7 @@ def login_user(
         )
 
     try:
-        clear_account_login_failures(payload.email)
+        clear_account_login_failures(email)
     except redis.exceptions.RedisError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -243,6 +232,46 @@ def login_user(
         ),
         token_type="bearer",
     )
+
+
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Authenticate user and issue JWT tokens",
+)
+def login_user(
+    payload: LoginRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> TokenResponse:
+    """Authenticate a user with rate limiting via standard JSON payload."""
+    client_ip = (
+        request.client.host
+        if request.client is not None
+        else "unknown"
+    )
+    return _authenticate_and_create_tokens(payload.email, payload.password, client_ip, db)
+
+
+@router.post(
+    "/token",
+    response_model=TokenResponse,
+    include_in_schema=False,
+)
+def login_for_swagger(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+) -> TokenResponse:
+    """OAuth2 password flow token endpoint specifically for Swagger UI Authorize popup."""
+    client_ip = (
+        request.client.host
+        if request.client is not None
+        else "unknown"
+    )
+    return _authenticate_and_create_tokens(form_data.username, form_data.password, client_ip, db)
+
+
 
 
 @router.post(
