@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import StaleDataError
 
+from ..models.substation import Substation
 from ..models.user import User
 from ..models.work_order import WorkOrder
 from ..schemas.work_order import (
@@ -69,6 +70,15 @@ class WorkOrderService:
         """
         Atomically creates a new Work Order in initial 'Pending' status.
         """
+        # Validate substation existence if provided
+        if payload.substation_id is not None:
+            substation = db.query(Substation).filter(Substation.id == payload.substation_id).first()
+            if not substation:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Substation with ID {payload.substation_id} does not exist. Use a valid substation ID or set it to null.",
+                )
+
         work_order = WorkOrder(
             title=payload.title,
             description=payload.description,

@@ -27,6 +27,13 @@ async def lifespan(app: FastAPI):
                 if role_name not in existing_roles:
                     db.add(Role(name=role_name, description=f"Default {role_name} role"))
             db.commit()
+            # Automatically seed sample substations if table is empty
+            from .models.substation import Substation
+            if db.query(Substation).count() == 0:
+                s1 = Substation(id=1, name="Cairo North Primary", location="Cairo North, Zone 1", voltage_level_kv=220.0, status="OPERATIONAL")
+                s2 = Substation(id=2, name="Alexandria West Terminal", location="Alexandria, Industrial Zone", voltage_level_kv=132.0, status="OPERATIONAL")
+                db.add_all([s1, s2])
+                db.commit()
     except Exception:
         # Fallback for offline testing or environments where engine is overridden
         pass
