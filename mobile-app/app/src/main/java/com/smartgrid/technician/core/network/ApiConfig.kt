@@ -10,16 +10,29 @@ import com.smartgrid.technician.BuildConfig
  * 1. Base URL pointing to the deployed API gateway (configured via BuildConfig.API_BASE_URL).
  * 2. An endpoint at POST `auth/login` accepting `{"email": "...", "password": "..."}`
  *    and returning `{"access_token": "...", "refresh_token": "...", "expires_in": 3600, "user": {...}}`.
- * 3. Standard HTTPS TLS 1.3/1.2 endpoint certificates in production.
+ * 3. Endpoints at GET `assets` and GET `assets/{id}` for querying substation power assets.
+ * 4. Standard HTTPS TLS 1.3/1.2 endpoint certificates in production.
  */
 object ApiConfig {
 
     /**
-     * Default base URL obtained from Gradle BuildConfig.
-     * Can be overridden at runtime or during testing.
+     * Optional user-configured base URL override for field testing on physical devices.
+     */
+    @Volatile
+    var customBaseUrl: String? = null
+
+    /**
+     * Default base URL obtained from customBaseUrl (if set) or Gradle BuildConfig.
      */
     val defaultBaseUrl: String
-        get() = BuildConfig.API_BASE_URL
+        get() {
+            val custom = customBaseUrl?.trim()
+            return if (!custom.isNullOrBlank()) {
+                if (custom.endsWith("/")) custom else "$custom/"
+            } else {
+                BuildConfig.API_BASE_URL
+            }
+        }
 
     const val TIMEOUT_CONNECT_SECONDS = 15L
     const val TIMEOUT_READ_SECONDS = 15L
@@ -29,4 +42,7 @@ object ApiConfig {
     const val ENDPOINT_LOGIN = "auth/login"
     const val ENDPOINT_REFRESH = "auth/refresh"
     const val ENDPOINT_PROFILE = "auth/me"
+
+    // Asset Endpoints
+    const val ENDPOINT_ASSETS = "assets"
 }

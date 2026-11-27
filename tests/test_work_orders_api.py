@@ -7,10 +7,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+# Disable SpatiaLite DDL triggers in SQLite for in-memory testing
+import geoalchemy2.admin.dialects.sqlite as sqlite_admin
+sqlite_admin.after_create = lambda *args, **kwargs: None
+sqlite_admin.before_drop = lambda *args, **kwargs: None
+
 from backend.src.database import Base, get_db
 from backend.src.helpers.auth import create_access_token, hash_password
 from backend.src.main import app
-from backend.src.models import Permission, Role, User, WorkOrder
+from backend.src.models import Permission, Role, Substation, User, WorkOrder
 from backend.src.schemas.work_order import OutageCause, WorkOrderPriority, WorkOrderStatus
 
 # Isolated in-memory SQLite database dedicated exclusively to the test suite
@@ -21,6 +26,15 @@ test_engine = create_engine(
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )
+
+from sqlalchemy import event
+
+@event.listens_for(test_engine, "connect")
+def setup_sqlite_spatial_functions(dbapi_connection, connection_record):
+    """Registers lightweight spatial stubs for in-memory SQLite test execution."""
+    dbapi_connection.create_function("GeomFromEWKT", 1, lambda x: x)
+    dbapi_connection.create_function("AsEWKB", 1, lambda x: x)
+    dbapi_connection.create_function("ST_AsBinary", 1, lambda x: x)
 
 TestingSessionLocal = sessionmaker(
     autocommit=False, autoflush=False, bind=test_engine
@@ -88,6 +102,19 @@ def db_session():
     )
 
     db.add_all([admin_user, engineer_user, tech_user, tech_user_2, inactive_tech])
+    db.commit()
+
+    # 3. Seed Substation for foreign key tests
+    substation = Substation(
+        id=1,
+        name="Cairo North Primary",
+        code="SUB-CAI-01",
+        location="30.0444, 31.2357",
+        voltage_level_kv=220.0,
+        status="OPERATIONAL",
+        created_by_id=admin_user.id,
+    )
+    db.add(substation)
     db.commit()
 
     try:

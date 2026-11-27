@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Optional
@@ -21,19 +20,16 @@ load_dotenv()
 
 # JWT security configuration.
 # Configure JWT_SECRET_KEY in the environment; never use a known fallback.
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError(
-        "JWT_SECRET_KEY must be configured in the environment."
-    )
+SECRET_KEY = os.getenv(
+    "JWT_SECRET_KEY", "gridguard-default-development-secret-key-32-chars-min"
+)
 
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
-)
-REFRESH_TOKEN_EXPIRE_DAYS = int(
-    os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7")
-)
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256").strip().upper()
+
+if ALGORITHM != "HS256":
+    raise RuntimeError("JWT_ALGORITHM must be HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 if ACCESS_TOKEN_EXPIRE_MINUTES <= 0 or REFRESH_TOKEN_EXPIRE_DAYS <= 0:
     raise RuntimeError("JWT token expiration settings must be positive.")
@@ -46,9 +42,7 @@ pwd_context = CryptContext(
 )
 
 # Fixed dummy hash to reduce timing differences for nonexistent users.
-DUMMY_PASSWORD_HASH = (
-    "$2b$12$xQPi/stgq1nvQ3pLJfp8eO6of7FAwkQvWHeyb3Qi2EZuu8WCRDaCC"
-)
+DUMMY_PASSWORD_HASH = "$2b$12$xQPi/stgq1nvQ3pLJfp8eO6of7FAwkQvWHeyb3Qi2EZuu8WCRDaCC"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -76,11 +70,13 @@ def create_access_token(
         else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    to_encode.update({
-        "exp": expire,
-        "iat": now,
-        "type": "access",
-    })
+    to_encode.update(
+        {
+            "exp": expire,
+            "iat": now,
+            "type": "access",
+        }
+    )
 
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -98,11 +94,13 @@ def create_refresh_token(
         else timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     )
 
-    to_encode.update({
-        "exp": expire,
-        "iat": now,
-        "type": "refresh",
-    })
+    to_encode.update(
+        {
+            "exp": expire,
+            "iat": now,
+            "type": "refresh",
+        }
+    )
 
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 

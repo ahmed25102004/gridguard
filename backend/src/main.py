@@ -1,9 +1,9 @@
-import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
+from .routes.assets import router as assets_router
 from .routes.auth import router as auth_router
 from .routes.work_orders import router as work_orders_router
 
@@ -55,7 +55,7 @@ origins = [
     "http://localhost:3000",  # React / Next.js local dashboard
     "http://localhost:5173",  # Vite dev server
     "http://localhost:8080",
-    "*",                      # Permissive in dev to allow mobile emulator and IoT simulator connections
+    "*",  # Permissive in dev to allow mobile emulator and IoT simulator connections
 ]
 
 app.add_middleware(
@@ -66,8 +66,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount authentication route handlers
+# Mount route handlers
 app.include_router(auth_router)
+app.include_router(assets_router)
 
 # Mount work orders & dispatch route handlers
 app.include_router(work_orders_router)

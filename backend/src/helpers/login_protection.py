@@ -1,4 +1,3 @@
-
 import hashlib
 import os
 
@@ -41,24 +40,32 @@ def is_login_blocked(email: str, client_ip: str) -> bool:
 
 def record_failed_login(email: str, client_ip: str) -> None:
     """Atomically increment failure counters and set their expiry."""
-    try:
-        script = """
-        for i, key in ipairs(KEYS) do
-            local count = redis.call('INCR', key)
-            if count == 1 then
-                redis.call('EXPIRE', key, ARGV[1])
-            end
+    script = """
+    for i, key in ipairs(KEYS) do
+        local count = redis.call('INCR', key)
+        if count == 1 then
+            redis.call('EXPIRE', key, ARGV[1])
         end
-        return 1
-        """
+    end
+    return 1
+    """
 
-        redis_client.eval(
-            script,
-            2,
-            _key("email", email.strip().lower()),
-            _key("ip", client_ip),
-            LOCKOUT_WINDOW_SECONDS,
-        )
+    try:
+        try:
+            redis_client.eval(
+                script,
+                2,
+                _key("email", email.strip().lower()),
+                _key("ip", client_ip),
+                LOCKOUT_WINDOW_SECONDS,
+            )
+        except redis.exceptions.ResponseError:
+            # Fallback to pipeline when Lua scripting is unsupported (e.g. fakeredis without lupa)
+            pipe = redis_client.pipeline()
+            for key in (_key("email", email.strip().lower()), _key("ip", client_ip)):
+                pipe.incr(key)
+                pipe.expire(key, LOCKOUT_WINDOW_SECONDS)
+            pipe.execute()
     except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
         pass
 
@@ -69,4 +76,3 @@ def clear_account_login_failures(email: str) -> None:
         redis_client.delete(_key("email", email.strip().lower()))
     except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
         pass
-

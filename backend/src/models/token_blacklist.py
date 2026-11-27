@@ -28,4 +28,3 @@ class TokenBlacklist(Base):
         nullable=False,
         index=True,
     )
-

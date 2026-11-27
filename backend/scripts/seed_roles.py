@@ -1,22 +1,40 @@
-import os
 import sys
 from pathlib import Path
 
 # Add project root directory to sys.path to enable clean imports when running standalone
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-sys.path.append(str(ROOT_DIR))
+sys.path.insert(0, str(ROOT_DIR))
 
-from backend.src.database import Base, SessionLocal, engine
-from backend.src.models import Permission, Role
+# noqa: E402 - imports must follow the project root path setup
+from backend.src.database import Base, SessionLocal, engine  # noqa: E402
+from backend.src.models import Permission, Role  # noqa: E402
 
 # Definition of granular permissions for GridGuard smart grid platform
 SYSTEM_PERMISSIONS = [
-    {"name": "users:manage", "description": "Create, update, and manage system user accounts"},
-    {"name": "substations:read", "description": "View electrical substation details and telemetry"},
-    {"name": "substations:write", "description": "Register and update electrical substations"},
-    {"name": "grid:control", "description": "Execute critical breaker trip and switch operations"},
-    {"name": "alerts:view", "description": "Monitor cybersecurity and electrical anomaly alerts"},
-    {"name": "audit:read", "description": "Access security and system operation audit logs"},
+    {
+        "name": "users:manage",
+        "description": "Create, update, and manage system user accounts",
+    },
+    {
+        "name": "substations:read",
+        "description": "View electrical substation details and telemetry",
+    },
+    {
+        "name": "substations:write",
+        "description": "Register and update electrical substations",
+    },
+    {
+        "name": "grid:control",
+        "description": "Execute critical breaker trip and switch operations",
+    },
+    {
+        "name": "alerts:view",
+        "description": "Monitor cybersecurity and electrical anomaly alerts",
+    },
+    {
+        "name": "audit:read",
+        "description": "Access security and system operation audit logs",
+    },
 ]
 
 # Definition of initial system roles and their assigned permission mappings

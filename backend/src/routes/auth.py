@@ -34,6 +34,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 class RegisterRequest(BaseModel):
     """Schema for new user registration."""
+
     email: EmailStr
     password: str = Field(
         min_length=8,
@@ -45,12 +46,14 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Schema for login credentials."""
+
     email: EmailStr
     password: str
 
 
 class TokenResponse(BaseModel):
     """Response containing access and refresh JWTs."""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -58,11 +61,13 @@ class TokenResponse(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     """Request to refresh a token pair."""
+
     refresh_token: str
 
 
 class UserResponse(BaseModel):
     """Public user profile; never exposes password hashes."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: int
@@ -108,22 +113,14 @@ def register_user(
     """Create a user with a validated, hashed password."""
     validate_password_strength(payload.password)
 
-    existing_user = (
-        db.query(User)
-        .filter(User.email == payload.email)
-        .first()
-    )
+    existing_user = db.query(User).filter(User.email == payload.email).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email is already registered",
         )
 
-    role = (
-        db.query(Role)
-        .filter(Role.name == payload.role_name)
-        .first()
-    )
+    role = db.query(Role).filter(Role.name == payload.role_name).first()
     if not role:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -182,11 +179,7 @@ def _authenticate_and_create_tokens(
     )
 
     # Use the same public error for unknown users and incorrect passwords.
-    password_hash = (
-        user.hashed_password
-        if user is not None
-        else DUMMY_PASSWORD_HASH
-    )
+    password_hash = user.hashed_password if user is not None else DUMMY_PASSWORD_HASH
 
     password_valid = verify_password(password, password_hash)
 

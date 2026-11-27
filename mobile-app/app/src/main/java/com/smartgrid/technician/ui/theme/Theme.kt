@@ -1,46 +1,41 @@
 package com.smartgrid.technician.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = GridBlue80,
-    secondary = ElectricCyan,
-    tertiary = GridAmber80,
-    background = IndustrialDarkBackground,
-    surface = IndustrialDarkSurface
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = GridBlue40,
-    secondary = GridBlueGrey40,
-    tertiary = GridAmber40
+private val AppColorScheme = lightColorScheme(
+    primary = ElectricBlue,
+    onPrimary = OnElectricBlue,
+    primaryContainer = ElectricBlueContainer,
+    onPrimaryContainer = OnElectricBlueContainer,
+    secondary = SlateBlue,
+    onSecondary = OnElectricBlue,
+    secondaryContainer = SlateContainer,
+    onSecondaryContainer = OnSlate,
+    tertiary = ElectricBlueLight,
+    onTertiary = OnElectricBlue,
+    background = AppBackground,
+    onBackground = AppTextPrimary,
+    surface = AppSurface,
+    onSurface = AppTextPrimary,
+    surfaceVariant = AppSurfaceVariant,
+    onSurfaceVariant = SlateBlue,
+    outline = AppOutline,
+    error = ErrorRed,
+    onError = OnElectricBlue,
+    errorContainer = ErrorRedContainer,
+    onErrorContainer = ErrorRed
 )
 
 @Composable
 fun SmartGridTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = false,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = AppColorScheme,
         typography = Typography,
         content = content
     )

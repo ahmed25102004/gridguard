@@ -7,7 +7,11 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from backend.src.database import Base, get_db
-from backend.src.helpers.auth import create_access_token, create_refresh_token, decode_token, hash_password
+from backend.src.helpers.auth import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 from backend.src.main import app
 from backend.src.models import Permission, Role, User
 
@@ -20,9 +24,7 @@ test_engine = create_engine(
     poolclass=StaticPool,
 )
 
-TestingSessionLocal = sessionmaker(
-    autocommit=False, autoflush=False, bind=test_engine
-)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
 
 @pytest.fixture(scope="function")
@@ -48,11 +50,24 @@ def db_session():
         Base.metadata.drop_all(bind=test_engine)
 
 
+@pytest.fixture(autouse=True)
+def mock_redis_for_auth_tests(monkeypatch):
+    """Ensure Redis operations run against an isolated in-memory fake during tests."""
+    import fakeredis
+    from backend.src.helpers import login_protection, token_blacklist
+
+    fake_redis = fakeredis.FakeRedis(decode_responses=True)
+    monkeypatch.setattr(login_protection, "redis_client", fake_redis)
+    monkeypatch.setattr(token_blacklist, "redis_client", fake_redis)
+    return fake_redis
+
+
 @pytest.fixture(scope="function")
 def client(db_session):
     """
     Fixture providing FastAPI TestClient with get_db overridden to use the test database.
     """
+
     def override_get_db():
         try:
             yield db_session
@@ -68,6 +83,7 @@ def client(db_session):
 # ==========================================
 # 1. Registration Flow Tests (POST /auth/register)
 # ==========================================
+
 
 def test_register_success(client: TestClient):
     """Test successful user registration with initial role and sanitized output."""
@@ -136,6 +152,7 @@ def test_register_weak_password_validation(client: TestClient):
 # ==========================================
 # 2. Login Flow Tests (POST /auth/login)
 # ==========================================
+
 
 def test_login_success(client: TestClient):
     """Test successful login returning valid JWT access and refresh token pair."""
@@ -226,7 +243,9 @@ def test_login_deactivated_user(client: TestClient, db_session):
     )
 
     # Deactivate user directly in test db
-    user = db_session.query(User).filter(User.email == "deactivated@gridguard.io").first()
+    user = (
+        db_session.query(User).filter(User.email == "deactivated@gridguard.io").first()
+    )
     user.is_active = False
     db_session.commit()
 
@@ -244,6 +263,7 @@ def test_login_deactivated_user(client: TestClient, db_session):
 # ==========================================
 # 3. Refresh Token Tests (POST /auth/refresh)
 # ==========================================
+
 
 def test_refresh_token_success(client: TestClient):
     """Test renewing session using a valid refresh token."""
@@ -298,7 +318,9 @@ def test_refresh_with_access_token_rejected(client: TestClient):
 
 def test_refresh_with_tampered_token(client: TestClient):
     """Test sending an invalid / forged token to /auth/refresh."""
-    response = client.post("/auth/refresh", json={"refresh_token": "tampered.jwt.token"})
+    response = client.post(
+        "/auth/refresh", json={"refresh_token": "tampered.jwt.token"}
+    )
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Could not validate credentials" in response.json()["detail"]
 
@@ -331,7 +353,11 @@ def test_refresh_deactivated_user(client: TestClient, db_session):
     refresh_token = login_resp.json()["refresh_token"]
 
     # Deactivate user
-    user = db_session.query(User).filter(User.email == "deactivated.refresh@gridguard.io").first()
+    user = (
+        db_session.query(User)
+        .filter(User.email == "deactivated.refresh@gridguard.io")
+        .first()
+    )
     user.is_active = False
     db_session.commit()
 
@@ -343,6 +369,7 @@ def test_refresh_deactivated_user(client: TestClient, db_session):
 # ==========================================
 # 4. Protected Route Tests (GET /auth/me)
 # ==========================================
+
 
 def test_get_me_success(client: TestClient):
     """Test retrieving authenticated user profile using Bearer access token."""
@@ -438,7 +465,11 @@ def test_get_me_deactivated_user(client: TestClient, db_session):
     access_token = login_resp.json()["access_token"]
 
     # Deactivate user
-    user = db_session.query(User).filter(User.email == "active.then.deact@gridguard.io").first()
+    user = (
+        db_session.query(User)
+        .filter(User.email == "active.then.deact@gridguard.io")
+        .first()
+    )
     user.is_active = False
     db_session.commit()
 
@@ -453,11 +484,16 @@ def test_get_me_deactivated_user(client: TestClient, db_session):
 # 5. Helpers & System Endpoint Tests
 # ==========================================
 
+
 def test_custom_token_expiration_deltas():
     """Test that custom timedelta expiration is respected by token generation helpers."""
     delta = timedelta(hours=2)
-    access_token = create_access_token(data={"sub": "custom@test.com"}, expires_delta=delta)
-    refresh_token = create_refresh_token(data={"sub": "custom@test.com"}, expires_delta=delta)
+    access_token = create_access_token(
+        data={"sub": "custom@test.com"}, expires_delta=delta
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": "custom@test.com"}, expires_delta=delta
+    )
 
     access_payload = decode_token(access_token)
     refresh_payload = decode_token(refresh_token)

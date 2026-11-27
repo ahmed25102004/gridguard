@@ -1,4 +1,3 @@
-
 import bcrypt
 import pytest
 from fastapi import HTTPException
@@ -11,6 +10,7 @@ from backend.src.middleware.timing_defense import verify_password_timing_safe
 # --------------------------------------------------
 # Password policy
 # --------------------------------------------------
+
 
 def test_valid_password():
     assert validate_password_strength("GridGuard@2026") is True
@@ -64,6 +64,7 @@ def test_missing_special_char_password():
 # Timing defense / bcrypt verification
 # --------------------------------------------------
 
+
 @pytest.fixture
 def valid_bcrypt_hash():
     # Low rounds keep the test fast; production must use cost >= 12.
@@ -74,29 +75,39 @@ def valid_bcrypt_hash():
 
 
 def test_timing_defense_accepts_correct_password(valid_bcrypt_hash):
-    assert verify_password_timing_safe(
-        "GridGuard@2026",
-        valid_bcrypt_hash,
-    ) is True
+    assert (
+        verify_password_timing_safe(
+            "GridGuard@2026",
+            valid_bcrypt_hash,
+        )
+        is True
+    )
 
 
 def test_timing_defense_rejects_wrong_password(valid_bcrypt_hash):
-    assert verify_password_timing_safe(
-        "WrongPassword@2026",
-        valid_bcrypt_hash,
-    ) is False
+    assert (
+        verify_password_timing_safe(
+            "WrongPassword@2026",
+            valid_bcrypt_hash,
+        )
+        is False
+    )
 
 
 def test_timing_defense_rejects_invalid_hash():
-    assert verify_password_timing_safe(
-        "GridGuard@2026",
-        "not-a-valid-bcrypt-hash",
-    ) is False
+    assert (
+        verify_password_timing_safe(
+            "GridGuard@2026",
+            "not-a-valid-bcrypt-hash",
+        )
+        is False
+    )
 
 
 # --------------------------------------------------
 # Redis JWT blacklist
 # --------------------------------------------------
+
 
 class FakeBlacklistRedis:
     def __init__(self):
@@ -153,6 +164,7 @@ def test_empty_token_is_rejected():
 # Login brute-force protection
 # --------------------------------------------------
 
+
 class FakeLoginRedis:
     def __init__(self, values=None):
         self.values = values or {}
@@ -175,10 +187,13 @@ def test_login_not_blocked_below_attempt_limit(monkeypatch):
     fake_redis = FakeLoginRedis()
     monkeypatch.setattr(login_protection, "redis_client", fake_redis)
 
-    assert login_protection.is_login_blocked(
-        "user@example.com",
-        "192.0.2.10",
-    ) is False
+    assert (
+        login_protection.is_login_blocked(
+            "user@example.com",
+            "192.0.2.10",
+        )
+        is False
+    )
 
 
 def test_login_blocked_when_account_reaches_limit(monkeypatch):
@@ -186,9 +201,11 @@ def test_login_blocked_when_account_reaches_limit(monkeypatch):
     ip = "192.0.2.10"
 
     email_key = login_protection._key("email", email)
-    fake_redis = FakeLoginRedis({
-        email_key: str(login_protection.MAX_FAILED_ATTEMPTS),
-    })
+    fake_redis = FakeLoginRedis(
+        {
+            email_key: str(login_protection.MAX_FAILED_ATTEMPTS),
+        }
+    )
     monkeypatch.setattr(login_protection, "redis_client", fake_redis)
 
     assert login_protection.is_login_blocked(email, ip) is True
@@ -215,6 +232,4 @@ def test_successful_login_clears_account_failures(monkeypatch):
 
     login_protection.clear_account_login_failures("user@example.com")
 
-    assert fake_redis.deleted == [
-        login_protection._key("email", "user@example.com")
-    ]
+    assert fake_redis.deleted == [login_protection._key("email", "user@example.com")]
