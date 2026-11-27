@@ -1,0 +1,19 @@
+# ChromaDB local persistence directory
+chroma_db/
+data/chroma_db/
+*.parquet
+*.sqlite3
+
+# Uploaded manual PDF catalogs & extracted images (preserve directory structure via .gitkeep)
+data/manuals/*.pdf
+data/manuals/*.PDF
+data/images/*
+!data/images/.gitkeep
+
+# Python cache & env
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.coverage
+htmlcov/
