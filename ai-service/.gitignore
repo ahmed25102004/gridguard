@@ -1,0 +1,29 @@
+# ChromaDB local persistence directory
+chroma_db/
+data/chroma_db/
+*.parquet
+*.sqlite3
+*.joblib
+
+# Processed and cached data
+data/processed/*
+!data/processed/.gitkeep
+data/reports/*
+!data/reports/.gitkeep
+
+# Uploaded manual PDF catalogs & extracted images (preserve directory structure via .gitkeep)
+data/manuals/*.pdf
+data/manuals/*.PDF
+data/images/*
+!data/images/.gitkeep
+
+# Raw datasets (keep .gitkeep, ignore huge datasets if necessary, but keep repo clean)
+!data/raw/.gitkeep
+
+# Python cache & env
+__pycache__/
+*.py[cod]
+.env
+.pytest_cache/
+.coverage
+htmlcov/

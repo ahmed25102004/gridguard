@@ -48,6 +48,16 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# ChromaDB & Vector Store
+chroma_db/
+**/chroma_db/
+*.parquet
+data/manuals/*.pdf
+data/manuals/*.PDF
+data/*.pdf
+ai-service/data/manuals/*.pdf
+ai-service/data/chroma_db/
+
 # Test & coverage artifacts
 .coverage
 htmlcov/
@@ -58,7 +68,14 @@ node_modules/
 .next/
 out/
 dist/
+*.tsbuildinfo
+web-dashboard/node_modules/
+web-dashboard/.next/
+web-dashboard/next-env.d.ts
 
 # Local Vector DB & AI Service Data
 chroma_db/
 ai-service/data/
+ai-service/data/raw/*.csv
+data/raw/*.csv
+

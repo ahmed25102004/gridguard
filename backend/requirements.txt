@@ -16,3 +16,5 @@ redis>=5.0.0
 fakeredis>=2.20.0
 GeoAlchemy2>=0.14.0
 shapely>=2.0.0
+setuptools>=78.1.1
+

@@ -1,0 +1,31 @@
+﻿services:
+  emqx:
+    image: ${EMQX_IMAGE:-emqx/emqx:5.8.0}
+    container_name: ${EMQX_CONTAINER_NAME:-gridguard-emqx-baseline}
+    restart: unless-stopped
+    environment:
+      EMQX_NODE__NAME: ${EMQX_NODE_NAME:-emqx@127.0.0.1}
+      EMQX_NODE__COOKIE: ${EMQX_NODE_COOKIE:-gridguard_baseline_cookie}
+      EMQX_ALLOW_ANONYMOUS: ${EMQX_ALLOW_ANONYMOUS:-false}
+      EMQX_LISTENERS__TCP__DEFAULT__MAX_CONNECTIONS: ${EMQX_MAX_CONNECTIONS:-1000}
+    volumes:
+      - ./emqx/emqx_base.conf:/opt/emqx/etc/emqx.conf:ro
+      - emqx_data:/opt/emqx/data
+    networks:
+      - iot_baseline_net
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+networks:
+  iot_baseline_net:
+    name: ${IOT_DOCKER_NETWORK:-gridguard_iot_baseline_net}
+    driver: bridge
+    internal: true
+
+volumes:
+  emqx_data:
+    name: ${EMQX_DATA_VOLUME:-gridguard_emqx_baseline_data}
