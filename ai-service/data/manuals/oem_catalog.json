@@ -1,0 +1,137 @@
+{
+  "catalog_version": "2.0.0",
+  "sprint": "Sprint 2 (Grid Asset Inventory & Telemetry Simulation)",
+  "track": "Student 4: AI Engineer 2 (RAG Assistant & Anomaly Detection)",
+  "total_curated_oems": 5,
+  "oems": [
+    {
+      "manual_id": "ABB-DIST-TRAFO-01",
+      "oem": "ABB",
+      "equipment_type": "transformer",
+      "model_name": "Distribution Transformer (Oil-Immersed / Resibloc)",
+      "file_name": "ABB_DIST_TRAFO_01_distribution-transformer-installation-manual.pdf",
+      "relative_path": "data/manuals/ABB/ABB_DIST_TRAFO_01_distribution-transformer-installation-manual.pdf",
+      "voltage_class": "11kV - 33kV Medium Voltage",
+      "status": "available",
+      "topics": [
+        "Oil Temperature Indicator (OTI) settings",
+        "Winding Temperature Indicator (WTI) calibration",
+        "Insulating oil BDV dielectric breakdown limit (>50kV)",
+        "Silica gel dehydrating breather regeneration",
+        "Buchholz relay gas accumulation and trip inspection",
+        "Forced-air cooling fans (ONAF) test thresholds"
+      ],
+      "troubleshooting_sections": [
+        {
+          "fault_type": "High Oil Temperature Alarm",
+          "action": "Inspect OTI/WTI dial pockets, verify ONAF cooling fan thresholds, perform BDV dielectric test (IEC 60422 minimum 50kV).",
+          "citation_page": 27
+        },
+        {
+          "fault_type": "Buchholz Gas Trip",
+          "action": "Extract gas sample from Buchholz petcock, test combustibility, inspect conservator oil level and internal arcing.",
+          "citation_page": 31
+        }
+      ]
+    },
+    {
+      "manual_id": "SIEMENS-8DA10-GIS-01",
+      "oem": "Siemens",
+      "equipment_type": "switchgear",
+      "model_name": "8DA10 Fixed-Mounted Vacuum Circuit-Breaker Switchgear up to 40.5 kV",
+      "file_name": "861-96019-en-07-11-17.pdf",
+      "relative_path": "data/manuals/Siemens/861-96019-en-07-11-17.pdf",
+      "voltage_class": "Up to 40.5 kV (Gas-Insulated, Single-Pole Enclosed)",
+      "status": "available",
+      "topics": [
+        "SF6 gas pressure / density monitor threshold verification",
+        "Vacuum interrupter contact wear inspection",
+        "Operating mechanism spring charging motor servicing",
+        "Busbar compartment gas compartments and rupture diaphragms",
+        "Three-position disconnector interlocks",
+        "Voltage transformer (4MT3 / 4MU4) installation"
+      ],
+      "troubleshooting_sections": [
+        {
+          "fault_type": "SF6 Low Gas Pressure Warning / Alarm",
+          "action": "Check manometer temperature compensation curve, inspect gas compartment density switch contacts, initiate feeder isolation if pressure falls below lockout limit (0.38 MPa).",
+          "citation_page": 48
+        },
+        {
+          "fault_type": "Vacuum Circuit-Breaker Mechanism Jam",
+          "action": "Verify auxiliary switch signaling, lubricate operating shaft latch with Klueber Isoflex Topas L32, inspect charging motor fuses.",
+          "citation_page": 204
+        }
+      ]
+    },
+    {
+      "manual_id": "SCHNEIDER-SM6-MV-01",
+      "oem": "Schneider Electric",
+      "equipment_type": "switchboard",
+      "model_name": "SM6 Modular Medium Voltage Switchboard",
+      "file_name": "SM6_Medium_Voltage_Switchboard_Manual.pdf",
+      "relative_path": "data/manuals/Schneider/SM6_Medium_Voltage_Switchboard_Manual.pdf",
+      "voltage_class": "24kV - 36kV",
+      "status": "catalogued_ready_for_ingest",
+      "topics": [
+        "SF6 disconnector and earthing switch mechanical interlocks",
+        "VIP400 self-powered protection relay testing",
+        "Cable compartment internal arc withstand",
+        "Fuse-switch combination tripping verification"
+      ],
+      "troubleshooting_sections": [
+        {
+          "fault_type": "Earthing Switch Interlock Failure",
+          "action": "Verify feeder voltage indicator presence (VPIS), check mechanical key interlock padlock, inspect auxiliary contact block.",
+          "citation_page": 19
+        }
+      ]
+    },
+    {
+      "manual_id": "GE-MULTILIN-RELAY-01",
+      "oem": "GE",
+      "equipment_type": "protection_relay",
+      "model_name": "Multilin UR Series Universal Substation Management Relay",
+      "file_name": "GE_Multilin_UR_Series_Instruction_Manual.pdf",
+      "relative_path": "data/manuals/GE/GE_Multilin_UR_Series_Instruction_Manual.pdf",
+      "voltage_class": "Substation Secondary Protection",
+      "status": "catalogued_ready_for_ingest",
+      "topics": [
+        "Phase overcurrent (50/51) curves and time dial settings",
+        "Transformer differential protection (87T) harmonic restraint",
+        "Breaker failure protection (50BF) initiation logic",
+        "IEC 61850 GOOSE messaging and fiber optic communications"
+      ],
+      "troubleshooting_sections": [
+        {
+          "fault_type": "87T Differential Element False Trip",
+          "action": "Check 2nd harmonic inrush restraint threshold (default 15%), inspect CT polarity and ratio matching on star-delta vector group.",
+          "citation_page": 74
+        }
+      ]
+    },
+    {
+      "manual_id": "HITACHI-PASS-M00-GIS-01",
+      "oem": "Hitachi Energy",
+      "equipment_type": "switchgear",
+      "model_name": "PASS M00 Hybrid Gas-Insulated Switchgear",
+      "file_name": "Hitachi_PASS_M00_Hybrid_GIS_Manual.pdf",
+      "relative_path": "data/manuals/Hitachi/Hitachi_PASS_M00_Hybrid_GIS_Manual.pdf",
+      "voltage_class": "72.5kV - 145kV High Voltage",
+      "status": "catalogued_ready_for_ingest",
+      "topics": [
+        "Hybrid module installation and SF6 gas compartment filling",
+        "Hydraulic spring operating drive pressure checking",
+        "Current transformer (CT) primary injection test",
+        "Outdoor porcelain / composite bushing maintenance"
+      ],
+      "troubleshooting_sections": [
+        {
+          "fault_type": "Hydraulic Operating Drive Low Pressure",
+          "action": "Verify hydraulic pump motor contactor, inspect nitrogen accumulator pre-charge pressure, check safety valve sealing.",
+          "citation_page": 53
+        }
+      ]
+    }
+  ]
+}
